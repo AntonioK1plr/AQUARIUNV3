@@ -2,6 +2,8 @@
 
 Aplicación local en preparación para el sistema AQUARIUM. El alcance funcional y las prioridades se derivan de **Main Work Aquarium**; los demás documentos del proyecto son referencias.
 
+La portada pública ya está montada con el diseño de AQUARIUM.png. Sus filtros y el carrito son demostrativos y viven en el navegador; las funciones conectadas al backend se desarrollarán después de trazar los requisitos.
+
 ## Línea base técnica
 
 - PHP 8.2+ y Laravel 12 (en este entorno: Laravel 12.69.3).

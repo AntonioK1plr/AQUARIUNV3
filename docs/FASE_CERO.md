@@ -26,20 +26,21 @@ Establecer la línea base técnica, preparar un entorno local repetible y regist
 ## Estado del entorno y trabajo
 
 - Esqueleto Laravel creado en `aquarium/`; dependencias instaladas: Laravel 12.69.3, Inertia Laravel 1.3.4, PHPUnit 11.5.57, Collision 8.9.5 y Predis 2.4.1.
-- Configurados React 18, Inertia React 1.3.0, Vite 8.3.4 y Tailwind 3.4.19. Se añadió el punto de entrada Inertia y una página provisional, sin alcance funcional.
+- Configurados React 18, Inertia React 1.3.0, Vite 8.3.4 y Tailwind 3.4.19. La portada pública responsive sigue la referencia visual AQUARIUM.png: navegación, hero de búsqueda, categorías, especies recomendadas, clínica veterinaria y pie de página. Las fotos se guardan localmente dentro del proyecto.
+- La portada tiene filtros y contador/toast del carrito únicamente en estado React local de demostración; todavía no hay persistencia, API, autenticación, pagos ni citas médicas implementadas. La liga Figma compartida requiere iniciar sesión; la imagen adjunta basta para esta primera pantalla.
 - Se añadió `docker-compose.yml` con PostgreSQL 16 y Redis 7, almacenamiento local persistente y verificaciones de salud. Credenciales dentro de Compose solo son valores de desarrollo local; no deben reutilizarse en nube.
 - `.env.example` usa PostgreSQL/Redis local, y `.env` permanece ignorado por Git con la misma configuración local. `.nvmrc` fija Node 20.19.0, compatible con la versión actual de Vite; Main Work solo especifica Node 18/20. `scripts/php-local.ps1` carga los módulos PHP locales por proceso.
 - Entorno detectado: PHP 8.2 y Composer 2 instalados; Node 24.21 activo. Las DLL `pdo_pgsql`, `pgsql`, `gd` y `zip` existen en XAMPP y se cargaron correctamente en una invocación temporal de PHP; `scripts/php-local.ps1` prepara esas extensiones sin editar el `php.ini` global.
 - Las dependencias npm se instalaron; Vite se actualizó a 8.3.4 para eliminar sus avisos conocidos. npm aún reporta 7 avisos de dependencias del árbol de Tailwind 3 (5 altos, 2 moderados). Main Work especifica Tailwind 3; no se cambia a la versión mayor 4 sin autorización. Estos avisos quedan abiertos y deben resolverse o aceptarse explícitamente antes de publicar.
 - `npm run build`, `scripts/php-local.ps1 artisan route:list` y `docker compose config --quiet` finalizaron correctamente. PostgreSQL y Redis están `healthy`; Redis respondió `PONG`, PostgreSQL acepta conexiones y Laravel creó sus tablas base. Son comprobaciones de compilación y entorno; no se han ejecutado pruebas PHPUnit, Selenium ni JMeter.
-- El servidor HTTP local no respondió durante la comprobación desde esta sesión. El punto de entrada usa `resources/js/app.jsx`; el build genera correctamente el manifiesto Vite. Queda por abrir la página local desde el navegador del equipo y confirmar el render de React/Inertia.
+- La portada respondió HTTP 200 en `http://127.0.0.1:8000` y el navegador mostró el contenido React/Inertia. Se usa el build local de Vite; no requiere que el servidor de desarrollo de Vite permanezca activo. Docker Desktop no estaba activo durante esta revisión, así que PostgreSQL/Redis no están disponibles ahora.
 
 ## Acciones para cerrar fase cero
 
 1. Activar Node 20.19 en la máquina de desarrollo; las dependencias están instaladas y fijadas en `package-lock.json`.
 2. Confirmar persistencia de los volúmenes locales de PostgreSQL/Redis después de reiniciar los contenedores.
 3. Definir de forma reproducible la versión y extensiones PHP para todos los desarrolladores; el lanzador local ya carga los módulos requeridos en este equipo.
-4. Abrir la página React/Inertia desde el navegador y confirmar el render HTTP local.
+4. Confirmar inicio local de Docker Desktop y persistencia de volúmenes; la portada sí se muestra, pero funcionalidades que consulten base de datos aún dependerán de esos servicios.
 5. Crear la matriz trazable desde requisitos y casos de Main Work hacia módulo, prioridad, prueba y evidencia. Registrar antes cualquier contradicción hallada dentro de Main Work.
 
 ## Criterio de salida
