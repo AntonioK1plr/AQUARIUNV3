@@ -1,66 +1,54 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# AQUARIUM
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Aplicación local en preparación para el sistema AQUARIUM. El alcance funcional y las prioridades se derivan de **Main Work Aquarium**; los demás documentos del proyecto son referencias.
 
-## About Laravel
+## Línea base técnica
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- PHP 8.2+ y Laravel 12 (en este entorno: Laravel 12.69.3).
+- React 18.3.1 con Inertia.js 1.x.
+- Vite 8.3.4 y Tailwind CSS 3.4.19.
+- PostgreSQL 16 y Redis 7 en Docker Compose.
+- PHPUnit 11.5.57 para la estrategia de pruebas.
+- Destino previsto, según la decisión del proyecto: Render y Supabase.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+Se conservan las versiones mayores especificadas por Main Work. Las actualizaciones de versión mayor que alteren esa línea base deben registrarse y comprobarse antes de adoptarlas. El estado, las decisiones de compatibilidad y las brechas están en [`docs/FASE_CERO.md`](docs/FASE_CERO.md).
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Requisitos locales
 
-## Learning Laravel
+- PHP 8.2 con Composer 2.
+- Node.js 20.19.0 (indicado por `.nvmrc`) y npm.
+- Docker Desktop con Docker Compose.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+## Preparación e inicio
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+En PowerShell, desde la carpeta del repositorio:
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+```powershell
+composer install
+npm ci
+Copy-Item .env.example .env   # solo si aún no existe .env
+docker compose up -d
+./scripts/php-local.ps1 artisan key:generate  # solo para una instalación nueva
+./scripts/php-local.ps1 artisan migrate
+```
 
-## Laravel Sponsors
+Abre dos terminales en la carpeta del repositorio:
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+```powershell
+npm run dev
+```
 
-### Premium Partners
+```powershell
+./scripts/php-local.ps1 artisan serve
+```
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+Visita `http://127.0.0.1:8000`. No subas `.env`; contiene la configuración privada de cada máquina. Las credenciales definidas en Compose son exclusivamente para desarrollo local.
 
-## Contributing
+## Comprobaciones realizadas
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+- Compilación de recursos con Vite.
+- Inspección de rutas Laravel.
+- Validación de la configuración Compose.
+- PostgreSQL y Redis locales iniciaron con estado saludable.
 
-## Code of Conduct
-
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+La aplicación y la matriz de trazabilidad aún están en fase cero. No se han ejecutado las suites PHPUnit, Selenium ni JMeter; tampoco se ha desplegado a la nube. Consulta `docs/FASE_CERO.md` para las tareas pendientes y los avisos de dependencias conocidos.
