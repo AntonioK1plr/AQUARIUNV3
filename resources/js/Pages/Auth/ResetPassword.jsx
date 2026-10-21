@@ -1,0 +1,13 @@
+import React from 'react';
+import { Head, Link, useForm } from '@inertiajs/react';
+
+export default function ResetPassword({ token, email = '' }) {
+    const form = useForm({ token, email: email || '', password: '', password_confirmation: '' });
+
+    function submit(event) {
+        event.preventDefault();
+        form.post('/restablecer-contrasena');
+    }
+
+    return <div className="min-h-screen bg-slate-50 px-5 text-[#0b192c]"><Head title="Restablecer contraseña · AQUARIUM" /><header className="mx-auto max-w-5xl py-6"><Link href="/" className="font-black tracking-wide">AQUARIUM</Link></header><main className="mx-auto mt-12 max-w-lg rounded-3xl bg-white p-7 shadow-sm ring-1 ring-slate-900/10 sm:p-9"><p className="text-xs font-bold uppercase tracking-[0.15em] text-teal-700">Enlace temporal</p><h1 className="mt-2 text-2xl font-black">Define una nueva contraseña</h1><form onSubmit={submit} className="mt-6 space-y-4"><label className="block text-sm font-semibold">Correo<input type="email" required value={form.data.email} onChange={(event) => form.setData('email', event.target.value)} className="mt-2 w-full rounded-xl border-2 border-[#3974b8] bg-white shadow-[0_2px_8px_rgba(57,116,184,0.12)] focus:border-blue-700 focus:ring-4 focus:ring-blue-100" />{form.errors.email && <span className="mt-1 block text-sm font-normal text-rose-700">{form.errors.email}</span>}</label><label className="block text-sm font-semibold">Nueva contraseña<input type="password" required autoComplete="new-password" value={form.data.password} onChange={(event) => form.setData('password', event.target.value)} className="mt-2 w-full rounded-xl border-2 border-[#526b86] bg-white shadow-[0_2px_8px_rgba(11,25,44,0.12)] focus:border-[#0b192c] focus:ring-4 focus:ring-blue-100" /><span className="mt-1 block text-xs font-normal text-slate-500">Mínimo 10 caracteres, mayúscula, minúscula y número.</span>{form.errors.password && <span className="mt-1 block text-sm font-normal text-rose-700">{form.errors.password}</span>}</label><label className="block text-sm font-semibold">Confirma contraseña<input type="password" required autoComplete="new-password" value={form.data.password_confirmation} onChange={(event) => form.setData('password_confirmation', event.target.value)} className="mt-2 w-full rounded-xl border-2 border-[#087d87] bg-white shadow-[0_2px_8px_rgba(8,125,135,0.12)] focus:border-teal-800 focus:ring-4 focus:ring-teal-100" /></label><button disabled={form.processing} className="w-full rounded-xl bg-[#08c2cd] px-4 py-3 font-extrabold text-[#0b192c] disabled:opacity-60">Actualizar contraseña</button></form></main></div>;
+}

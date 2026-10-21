@@ -1,9 +1,15 @@
 /.phpunit.cache
 /node_modules
+/.docker-context/
+/.tmp/
+/jmeter.log
 /public/build
 /public/hot
 /public/storage
 /storage/*.key
+/storage/app/testing/
+/storage/framework/php-local-ini/
+/storage/*server*.log
 /vendor
 .env
 .env.backup

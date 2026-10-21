@@ -11,6 +11,12 @@ class User extends Authenticatable
 {
     use HasFactory, Notifiable;
 
+    public const ROLE_CLIENTE = 'cliente';
+    public const ROLE_ADMINISTRADOR = 'administrador';
+    public const ROLE_ALMACENISTA = 'almacenista';
+    public const ROLE_CAJERO_POS = 'cajero_pos';
+    public const ROLE_VETERINARIO = 'veterinario';
+
     /**
      * The attributes that are mass assignable.
      *
@@ -19,7 +25,10 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
+        'phone',
+        'address',
         'password',
+        'role',
     ];
 
     /**
@@ -42,6 +51,21 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+        ];
+    }
+
+    public function hasRole(string ...$roles): bool
+    {
+        return in_array($this->role, $roles, true);
+    }
+
+    public static function staffRoles(): array
+    {
+        return [
+            self::ROLE_ADMINISTRADOR,
+            self::ROLE_ALMACENISTA,
+            self::ROLE_CAJERO_POS,
+            self::ROLE_VETERINARIO,
         ];
     }
 }

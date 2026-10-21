@@ -8,7 +8,8 @@ $requiredExtensions = @(
     'php_pdo_pgsql.dll',
     'php_pgsql.dll',
     'php_gd.dll',
-    'php_zip.dll'
+    'php_zip.dll',
+    'php_intl.dll'
 )
 
 $extensionArguments = @()

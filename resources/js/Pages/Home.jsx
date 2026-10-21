@@ -1,50 +1,16 @@
 import React, { useMemo, useState } from 'react';
+import { router } from '@inertiajs/react';
 
 const categories = [
     { id: 'dulce', title: 'Peces Agua Dulce', image: '/images/cat-freshwater.jpg' },
     { id: 'salada', title: 'Peces Agua Salada', image: '/images/cat-saltwater.jpg' },
-    { id: 'acuarios', title: 'Peceras y Acuarios', image: '/images/cat-aquariums.jpg' },
+    { id: 'acuario', title: 'Peceras y Acuarios', image: '/images/cat-aquariums.jpg' },
     { id: 'alimento', title: 'Alimento Premium', image: '/images/cat-food.jpg' },
-    { id: 'soporte', title: 'Soporte y Accesorios', image: '/images/cat-equipment.jpg' },
-];
-
-const products = [
-    {
-        id: 'ocellaris',
-        title: 'Pez Payaso Ocellaris',
-        family: 'Fauna Marina · Agua Salada',
-        category: 'salada',
-        price: 480,
-        image: '/images/fish-clown.jpg',
-        alt: 'Pez payaso entre anémonas',
-    },
-    {
-        id: 'cirujano',
-        title: 'Pez Cirujano Azul',
-        family: 'Fauna Marina · Agua Salada',
-        category: 'salada',
-        price: 1250,
-        image: '/images/fish-tang.jpg',
-        alt: 'Pez cirujano azul en un arrecife',
-    },
-    {
-        id: 'disco',
-        title: 'Pez Disco Azul Cobalto',
-        family: 'Fauna Tropical · Agua Dulce',
-        category: 'dulce',
-        price: 950,
-        image: '/images/fish-discus.jpg',
-        alt: 'Pez disco azul entre plantas acuáticas',
-    },
-    {
-        id: 'tetra',
-        title: 'Cardumen Neon Tetra (10x)',
-        family: 'Fauna Tropical · Agua Dulce',
-        category: 'dulce',
-        price: 240,
-        image: '/images/fish-tetra.jpg',
-        alt: 'Cardumen de peces neon tetra',
-    },
+    { id: 'filtracion', title: 'Filtros y Filtración', image: '/images/cat-equipment.jpg' },
+    { id: 'sustrato', title: 'Arena y Sustratos', image: '/images/cat-aquariums.jpg' },
+    { id: 'decoracion', title: 'Piedras y Decoración', image: '/images/cat-aquariums.jpg' },
+    { id: 'medicina', title: 'Salud y Diagnóstico', image: '/images/cat-equipment.jpg' },
+    { id: 'accesorio', title: 'Equipo y Accesorios', image: '/images/cat-equipment.jpg' },
 ];
 
 const money = new Intl.NumberFormat('es-MX', {
@@ -99,6 +65,10 @@ function ProductCard({ product, quantity, onAdd }) {
                 <img
                     src={product.image}
                     alt={product.alt}
+                    onError={(event) => {
+                        event.currentTarget.onerror = null;
+                        event.currentTarget.src = '/images/hero-reef.jpg';
+                    }}
                     className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.04]"
                     loading="lazy"
                 />
@@ -129,13 +99,24 @@ function ProductCard({ product, quantity, onAdd }) {
     );
 }
 
-export default function Home() {
+export default function Home({ featuredProducts = [], auth = { user: null }, cart: savedCart = { itemsCount: 0 } }) {
     const [query, setQuery] = useState('');
     const [activeCategory, setActiveCategory] = useState('');
     const [cart, setCart] = useState({});
     const [notice, setNotice] = useState('');
     const [menuOpen, setMenuOpen] = useState(false);
-    const cartCount = Object.values(cart).reduce((total, count) => total + count, 0);
+    const cartCount = Number(savedCart?.itemsCount || 0) + Object.values(cart).reduce((total, count) => total + count, 0);
+
+    const products = useMemo(() => featuredProducts.map((product) => ({
+        id: product.sku,
+        productId: product.id,
+        title: product.name,
+        family: product.water_type === 'salada' ? 'Fauna marina · Agua salada' : 'Fauna tropical · Agua dulce',
+        category: product.water_type,
+        price: Number(product.price),
+        image: product.image_path,
+        alt: product.description || product.name,
+    })), [featuredProducts]);
 
     const visibleProducts = useMemo(() => {
         const normalized = query.trim().toLocaleLowerCase('es-MX');
@@ -144,32 +125,38 @@ export default function Home() {
             const matchesQuery = !normalized || `${product.title} ${product.family}`.toLocaleLowerCase('es-MX').includes(normalized);
             return matchesCategory && matchesQuery;
         });
-    }, [activeCategory, query]);
+    }, [activeCategory, query, products]);
 
     function addToCart(product) {
         setCart((current) => ({ ...current, [product.id]: (current[product.id] ?? 0) + 1 }));
         setNotice(`${product.title} se agregó al carrito`);
+        router.post('/carrito/items', { product_id: product.productId, quantity: 1 }, {
+            preserveState: true,
+            preserveScroll: true,
+            onSuccess: () => setCart({}),
+        });
         window.setTimeout(() => setNotice(''), 2600);
     }
 
     function chooseCategory(categoryId) {
-        setActiveCategory(categoryId);
-        setQuery('');
-        document.getElementById('especies')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const filter = ['dulce', 'salada'].includes(categoryId)
+            ? `water_type=${categoryId}`
+            : `category=${categoryId}`;
+        window.location.assign(`/catalogo?${filter}`);
     }
 
     function searchProducts(event) {
         event.preventDefault();
-        setActiveCategory('');
-        document.getElementById('especies')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const search = new URLSearchParams();
+        if (query.trim()) search.set('q', query.trim());
+        window.location.assign(`/catalogo?${search.toString()}`);
     }
 
     const navLinks = [
         ['Inicio', '#inicio'],
-        ['Catálogo', '#catalogo'],
+        ['Catálogo', '/catalogo'],
         ['Clínica', '#clinica'],
-        ['Comunidad', '#comunidad'],
-        ['Educación', '#educacion'],
+        ['Información', '#informacion'],
     ];
 
     return (
@@ -207,7 +194,7 @@ export default function Home() {
                         >
                             <SearchIcon />
                         </button>
-                        <a href="#especies" className="relative rounded-lg p-2 text-[#08c2cd] transition hover:bg-white/10" aria-label={`Carrito, ${cartCount} artículos`}>
+                        <a href="/carrito" className="relative rounded-lg p-2 text-[#08c2cd] transition hover:bg-white/10" aria-label={`Carrito, ${cartCount} artículos`}>
                             <BagIcon />
                             {cartCount > 0 && <span className="absolute -right-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-[#08c2cd] px-1 text-[9px] font-bold text-[#0b192c]">{cartCount}</span>}
                         </a>
@@ -220,7 +207,12 @@ export default function Home() {
                         >
                             Menú
                         </button>
-                        <button type="button" aria-label="Cuenta de usuario" className="hidden h-9 w-9 place-items-center rounded-full bg-slate-700 text-xs font-bold text-white sm:grid">JP</button>
+                        {auth.user ? (
+                            <div className="hidden items-center gap-2 sm:flex">
+                                <a href="/cuenta" aria-label="Mi cuenta" className="grid h-9 w-9 place-items-center rounded-full bg-slate-700 text-xs font-bold text-white">{auth.user.name.slice(0, 2).toUpperCase()}</a>
+                                <button type="button" onClick={() => router.post('/salir')} className="text-xs font-semibold text-slate-300 hover:text-white">Salir</button>
+                            </div>
+                        ) : <a href="/acceso" aria-label="Iniciar sesión" className="hidden h-9 w-9 place-items-center rounded-full bg-slate-700 text-xs font-bold text-white sm:grid">JP</a>}
                     </div>
                 </div>
                 {menuOpen && (
@@ -331,15 +323,41 @@ export default function Home() {
                             <p className="mt-1 max-w-4xl text-sm leading-6 text-slate-600 sm:text-base">
                                 Nuestros biólogos y médicos veterinarios especialistas te apoyan en el diagnóstico de enfermedades, análisis de agua y cuarentena responsable de tus ejemplares. Agenda tu videollamada o visita.
                             </p>
+                            <p className="mt-2 text-xs font-semibold text-slate-600">Horario de sucursal: 09:00–22:00 · Agenda de citas: 09:00–19:00, sujeta a disponibilidad veterinaria.</p>
                         </div>
-                        <a href="mailto:clinica@aquarium.com.mx?subject=Agendar%20cita%20veterinaria" className="shrink-0 rounded-xl bg-[#0b192c] px-5 py-3 text-center text-sm font-bold text-white transition hover:bg-[#173555]">
+                        <a href="/citas" className="shrink-0 rounded-xl bg-[#0b192c] px-5 py-3 text-center text-sm font-bold text-white transition hover:bg-[#173555]">
                             Agendar cita médica
                         </a>
                     </div>
                 </section>
+
+                <section id="informacion" className="scroll-mt-24 bg-slate-50 py-14 sm:py-20">
+                    <div className="mx-auto max-w-[1440px] px-5 sm:px-8">
+                        <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#0ba8b5]">Lo que hacemos</p>
+                        <div className="mt-2 grid gap-4 md:grid-cols-[1fr_1.2fr] md:items-end">
+                            <h2 className="text-3xl font-extrabold tracking-tight sm:text-4xl">Información y servicios AQUARIUM</h2>
+                            <p className="max-w-2xl text-sm leading-6 text-slate-600 sm:text-base">Acompañamos a cada cliente para que sus especies y sistemas acuáticos se mantengan en condiciones adecuadas, desde la elección hasta el cuidado especializado.</p>
+                        </div>
+                        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                            {[
+                                { number: '01', title: 'Clínica veterinaria', body: 'Orientación y atención especializada para fauna acuática, diagnóstico y seguimiento clínico.', link: '#clinica', label: 'Conocer la clínica' },
+                                { number: '02', title: 'Análisis y calidad del agua', body: 'Evaluación de parámetros del agua y recomendaciones para mejorar las condiciones del acuario.', link: 'mailto:info@aquarium.com.mx?subject=An%C3%A1lisis%20de%20agua', label: 'Solicitar información' },
+                                { number: '03', title: 'Instalación de acuarios', body: 'Asesoría para planear e instalar sistemas acuáticos con equipo de soporte adecuado.', link: 'mailto:info@aquarium.com.mx?subject=Instalaci%C3%B3n%20de%20acuario', label: 'Consultar instalación' },
+                                { number: '04', title: 'Asesoría biológica', body: 'Acompañamiento en selección responsable, compatibilidad y cuidados básicos de las especies.', link: '/catalogo', label: 'Explorar catálogo' },
+                            ].map((service) => (
+                                <article key={service.number} className="flex min-h-56 flex-col rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-900/[0.06]">
+                                    <span className="text-xs font-extrabold tracking-widest text-[#0ba8b5]">SERVICIO {service.number}</span>
+                                    <h3 className="mt-4 text-lg font-extrabold text-[#0b192c]">{service.title}</h3>
+                                    <p className="mt-2 flex-1 text-sm leading-6 text-slate-600">{service.body}</p>
+                                    <a href={service.link} className="mt-5 text-sm font-bold text-[#078b96] hover:text-[#0b192c]">{service.label} →</a>
+                                </article>
+                            ))}
+                        </div>
+                    </div>
+                </section>
             </main>
 
-            <footer id="comunidad" className="bg-[#0b192c] text-slate-300">
+            <footer className="bg-[#0b192c] text-slate-300">
                 <div className="mx-auto grid max-w-[1440px] gap-10 px-5 py-11 sm:grid-cols-2 sm:px-8 lg:grid-cols-[1.6fr_1fr_1fr_1fr] lg:gap-14 lg:py-14">
                     <div>
                         <a href="#inicio" className="flex items-center gap-2.5 text-white">
@@ -357,12 +375,12 @@ export default function Home() {
                             <li><a href="#catalogo" className="hover:text-[#08c2cd]">Corales</a></li>
                         </ul>
                     </div>
-                    <div id="educacion">
-                        <h3 className="text-xs font-extrabold uppercase tracking-wider text-white">Servicios</h3>
+                    <div>
+                        <h3 className="text-xs font-extrabold uppercase tracking-wider text-white">Información</h3>
                         <ul className="mt-4 space-y-2.5 text-sm text-slate-400">
-                            <li><a href="#clinica" className="hover:text-[#08c2cd]">Clínica Veterinaria Especializada</a></li>
-                            <li><a href="#clinica" className="hover:text-[#08c2cd]">Instalación de Sistemas</a></li>
-                            <li><a href="#clinica" className="hover:text-[#08c2cd]">Asesoría Biológica</a></li>
+                            <li><a href="#informacion" className="hover:text-[#08c2cd]">Nuestros servicios</a></li>
+                            <li><a href="#clinica" className="hover:text-[#08c2cd]">Clínica Veterinaria</a></li>
+                            <li><a href="mailto:info@aquarium.com.mx" className="hover:text-[#08c2cd]">Análisis de agua e instalación</a></li>
                         </ul>
                     </div>
                     <div>

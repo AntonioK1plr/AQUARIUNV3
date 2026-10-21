@@ -1,0 +1,12 @@
+.git
+**/.git
+**/.git/**
+.env
+.env.*
+!.env.example
+node_modules
+tools
+storage/app/testing
+storage/logs/*.log
+bootstrap/cache/*.php
+public/hot

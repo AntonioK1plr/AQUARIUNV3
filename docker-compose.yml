@@ -32,6 +32,49 @@ services:
       timeout: 3s
       retries: 10
 
+  loadtest-app:
+    profiles: ["loadtest"]
+    build:
+      context: .docker-context
+      dockerfile: docker/php/Dockerfile
+    container_name: aquarium-loadtest-app
+    working_dir: /var/www/html
+    env_file:
+      - .env
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "false"
+      APP_URL: http://127.0.0.1:8080
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: aquarium
+      DB_USERNAME: aquarium
+      DB_PASSWORD: aquarium_local
+      REDIS_CLIENT: predis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      SESSION_DRIVER: redis
+      CACHE_STORE: redis
+      LOG_CHANNEL: stderr
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: ["sh", "-lc", "php artisan optimize && exec php-fpm -F"]
+
+  loadtest-nginx:
+    profiles: ["loadtest"]
+    build:
+      context: .docker-context
+      dockerfile: docker/nginx/Dockerfile
+    container_name: aquarium-loadtest-nginx
+    ports:
+      - "8080:80"
+    depends_on:
+      - loadtest-app
+
 volumes:
   aquarium-postgres-data:
   aquarium-redis-data:
