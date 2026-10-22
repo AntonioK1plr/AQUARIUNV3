@@ -62,6 +62,8 @@ Route::middleware(['auth', 'role:administrador'])->prefix('admin')->name('admin.
     Route::get('/', [AdminDashboardController::class, 'index'])->name('dashboard');
     Route::get('/empleados', [EmployeeController::class, 'index'])->name('employees.index');
     Route::post('/empleados', [EmployeeController::class, 'store'])->name('employees.store');
+    Route::patch('/empleados/{employee}/estado', [EmployeeController::class, 'updateStatus'])->name('employees.status');
+    Route::delete('/empleados/{employee}', [EmployeeController::class, 'destroy'])->name('employees.destroy');
     Route::get('/pruebas', [TestReportController::class, 'index'])->name('testing.index');
 });
 

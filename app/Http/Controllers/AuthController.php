@@ -32,7 +32,12 @@ class AuthController extends Controller
             'password' => ['required', 'string'],
         ]);
 
-        if (! Auth::attempt($credentials, $request->boolean('remember'))) {
+        if (! Auth::attempt([...$credentials, 'is_active' => true], $request->boolean('remember'))) {
+            $user = User::query()->where('email', $credentials['email'])->first();
+            if ($user && ! $user->is_active) {
+                return back()->withErrors(['email' => 'Tu cuenta está desactivada. Contacta a administración.'])->onlyInput('email');
+            }
+
             return back()->withErrors(['email' => 'Las credenciales no coinciden con nuestros registros.'])->onlyInput('email');
         }
 
