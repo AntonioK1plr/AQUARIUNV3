@@ -24,15 +24,15 @@ class LocalDemoAccountsSeeder extends Seeder
         }
 
         $accounts = [
-            ['name' => 'Cliente Demo', 'email' => 'cliente.demo@aquarium.test', 'role' => User::ROLE_CLIENTE],
-            ['name' => 'Administración Demo', 'email' => 'admin.demo@aquarium.test', 'role' => User::ROLE_ADMINISTRADOR],
-            ['name' => 'Almacén Demo', 'email' => 'almacen.demo@aquarium.test', 'role' => User::ROLE_ALMACENISTA],
-            ['name' => 'Caja Demo', 'email' => 'cajero.demo@aquarium.test', 'role' => User::ROLE_CAJERO_POS],
-            ['name' => 'Veterinaria Demo', 'email' => 'veterinario.demo@aquarium.test', 'role' => User::ROLE_VETERINARIO],
+            ['name' => 'Cliente de Pruebas AQUARIUM', 'email' => 'cliente.demo@aquarium.local', 'role' => User::ROLE_CLIENTE],
+            ['name' => 'Administración de Pruebas AQUARIUM', 'email' => 'admin.demo@aquarium.local', 'role' => User::ROLE_ADMINISTRADOR],
+            ['name' => 'Almacén de Pruebas AQUARIUM', 'email' => 'almacen.demo@aquarium.local', 'role' => User::ROLE_ALMACENISTA],
+            ['name' => 'Caja POS de Pruebas AQUARIUM', 'email' => 'caja.demo@aquarium.local', 'role' => User::ROLE_CAJERO_POS],
+            ['name' => 'Veterinaria de Pruebas AQUARIUM', 'email' => 'veterinario.demo@aquarium.local', 'role' => User::ROLE_VETERINARIO],
         ];
 
         foreach ($accounts as $account) {
-            User::firstOrCreate(
+            User::updateOrCreate(
                 ['email' => $account['email']],
                 [
                     'name' => $account['name'],

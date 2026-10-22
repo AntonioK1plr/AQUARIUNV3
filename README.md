@@ -39,7 +39,9 @@ Se toma QU4.pdf como línea base funcional y se usan versiones actuales compatib
 
 Para preparar las herramientas portables de carga en Windows, ejecutar una vez `./scripts/install-testing-tools.ps1`. Instala JMeter y Temurin dentro de `tools/`, verifica sus hashes y no modifica el Java global. Para Selenium, ejecutar `npm ci`; Selenium Manager obtiene ChromeDriver cuando se requiera.
 
-Las cuentas de demostración se crean explícitamente con `./scripts/php-local.ps1 artisan db:seed --class=LocalDemoAccountsSeeder`. Antes, configura `$env:AQUARIUM_DEMO_PASSWORD` en la sesión local de PowerShell con una contraseña propia de al menos 12 caracteres. El seeder solo funciona en entornos `local` y `testing`; la contraseña no está incluida en el repositorio.
+Las cinco cuentas demo de PostgreSQL usan correos `@aquarium.local`. Configura `AQUARIUM_DEMO_PASSWORD` en el `.env` local con al menos 12 caracteres y restablécelas explícitamente con `./scripts/php-local.ps1 artisan db:seed --class=LocalDemoAccountsSeeder`. El seeder solo funciona en entornos `local` y `testing`; actualiza esas cinco cuentas sin tocar a los demás usuarios.
+
+PostgreSQL `aquarium` es la fuente única de verdad. El 21/10/2026 se consolidaron en ella el catálogo y las tres ventas simuladas que estaban en `database/aquarium-local.sqlite`; sus pedidos, partidas, pagos simulados y movimientos de inventario se conservaron. Se hizo respaldo de ambos archivos bajo `storage/app/testing/database-backups/`. El archivo SQLite original se mantiene como archivo histórico aislado y no sincroniza cambios nuevos.
 
 ## Preparación e inicio
 
@@ -64,7 +66,7 @@ npm run dev
 ./scripts/serve-local.ps1
 ```
 
-Visita `http://127.0.0.1:8001`. No subas `.env`; contiene la configuración privada de cada máquina. Las credenciales definidas en Compose son exclusivamente para desarrollo local.
+Visita `http://127.0.0.1:8001`. PostgreSQL local en Docker (`aquarium`) es la única base de trabajo: cuentas, catálogo, inventario, pedidos, pagos simulados y resultados que quieras conservar viven allí. No subas `.env`; contiene la configuración privada de cada máquina. Las credenciales definidas en Compose son exclusivamente para desarrollo local.
 
 Si Docker Desktop no está disponible, la portada y el catálogo se pueden mostrar temporalmente con SQLite local. Primero prepara esa base (una sola vez o después de cambiar migraciones):
 
@@ -73,7 +75,7 @@ Si Docker Desktop no está disponible, la portada y el catálogo se pueden mostr
 ./scripts/serve-local-sqlite.ps1
 ```
 
-Este modo escucha solo en `127.0.0.1:8001` y no reemplaza la base PostgreSQL elegida para la etapa local completa. Los datos SQLite son solo semilla de demostración.
+Este modo escucha solo en `127.0.0.1:8001` y sirve como respaldo aislado, sin sincronización con PostgreSQL. Las pruebas funcionales y transaccionales deben usar PostgreSQL para que pedidos, inventario, cuentas y resultados queden en una sola base. `prepare-local-sqlite.ps1` ya no borra su archivo ni reinicia sus datos.
 
 ## Comprobaciones realizadas
 
@@ -86,6 +88,6 @@ Este modo escucha solo en `127.0.0.1:8001` y no reemplaza la base PostgreSQL ele
 - Plan JMeter de solo lectura en `tests/performance/aquarium-public-flow.jmx` (500 usuarios configurables) y lanzador `scripts/run-jmeter-local.ps1`. Apache JMeter 5.6.3 y Temurin JDK 21.0.12.1 están instalados y verificados localmente. Perfil de carga local Nginx + PHP-FPM en Docker, en el puerto `8080`: 50 usuarios, rampa 10 s, 30 s, 6,421 solicitudes, 0 fallas, promedio 195 ms, máximo 529 ms; 500 usuarios, rampa 60 s, 60 s, 13,372 solicitudes, 0 fallas, promedio 1,169.66 ms, p95 2,012 ms, máximo 2,472 ms. Es evidencia repetible del equipo local, no una certificación de producción ni de SLA; un intento anterior con el perfil Docker anterior falló y se conserva en el historial. El resumen y el dashboard se consultan en `/admin/pruebas` y `storage/app/testing/jmeter/`.
 - Selenium WebDriver 4.51.0, con Selenium Manager para ChromeDriver: 8 escenarios aprobados (Inicio/navegación, filtro público de Catálogo, autenticación para agenda y acceso por rol a Cuenta, Reportes, Almacén, POS y Agenda clínica). `npm run test:e2e` corre los tres escenarios públicos; para incluir los cinco módulos de rol, define `AQUARIUM_E2E_ACCOUNTS_JSON` en la sesión PowerShell con las cuentas de demostración y vuelve a ejecutar el comando. Las contraseñas se leen solo del entorno, no se guardan en el repositorio ni en el reporte. El JSON queda en `storage/app/testing/selenium/` y aparece en `/admin/pruebas`.
 - `npm audit` identifica 7 vulnerabilidades en herramientas de desarrollo (5 altas, 2 moderadas) de la cadena que arrastra Tailwind CSS 3. La corrección automática requiere Tailwind 4, que no forma parte de la línea base visual; se conserva Tailwind 3 hasta validar una migración.
-- Docker Desktop está activo: PostgreSQL 16.15 y Redis 7 aparecen saludables; las 20 migraciones están aplicadas en PostgreSQL y el servidor local en `127.0.0.1:8001` usa esa conexión. El servidor PHP de desarrollo no sirve para certificar carga de 500 usuarios.
+- Docker Desktop: PostgreSQL 16.15 y Redis 7 son los servicios locales. PostgreSQL `aquarium` es la base única para conservar cuentas, catálogo, inventario y transacciones; aplica las migraciones pendientes con `./scripts/php-local.ps1 artisan migrate`. El servidor PHP de desarrollo no sirve para certificar carga de 500 usuarios.
 
 El catálogo público tiene persistencia y búsqueda indexada; están implementadas autenticación por roles, perfil y recuperación de contraseña, gestión de empleados, inventario con auditoría y apartado temporal, ubicación física de productos y picking ordenado por pasillo, expediente clínico con PDF local restringido, mediciones y prescripción estructurada más hash de integridad local, agenda veterinaria, POS con efectivo/cambio y cierre Z simulados, carrito con compatibilidad biológica, notificaciones in-app locales, preparación/entrega con pase QR y vencimiento Click & Collect, además de despacho local simulado. La capacidad de citas es el total de veterinarios disponibles por horario; la sucursal atiende de 09:00 a 22:00 y permite reservar hasta las 19:00. El pie del PDF clínico muestra “SELLO NOM-151 · SIMULACIÓN LOCAL” y explica que no es sello oficial, firma electrónica, sello de tiempo ni certificación. La carga de 50 usuarios pasó; la de 500 usuarios se sostuvo durante 60 segundos a concurrencia plena sobre Docker/Nginx/PHP-FPM, con cero errores. Selenium aprobó ocho escenarios, incluidos los cinco roles. Las cinco cuentas de prueba (cliente, administrador, almacenista, cajero POS y veterinario) ya están creadas en PostgreSQL local; las credenciales son solo para este entorno. Quedan la trazabilidad completa QU4 → módulos → casos → evidencias y las validaciones visuales/manuales finales. No se ha desplegado a la nube. Consulta `docs/FASE_CERO.md` para el estado y `../docs/Plan_Pruebas_Local_AQUARIUM.docx` para el plan local.
