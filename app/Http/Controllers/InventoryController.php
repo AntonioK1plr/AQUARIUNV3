@@ -33,7 +33,7 @@ class InventoryController extends Controller
             ->when(($filters['stock'] ?? null) === 'agotado', fn ($query) => $query->where('stock', 0));
 
         return Inertia::render('Warehouse/Index', [
-            'products' => $productsQuery->orderBy('name')->paginate(10)->withQueryString(),
+            'products' => $productsQuery->orderBy('warehouse_location')->orderBy('name')->paginate(10)->withQueryString(),
             'filters' => $filters,
             'summary' => [
                 'products' => Product::where('is_active', true)->count(),
@@ -58,12 +58,12 @@ class InventoryController extends Controller
             'category' => ['required', Rule::in(['pez', 'invertebrado', 'coral', 'acuario', 'filtracion', 'sustrato', 'decoracion', 'alimento', 'medicina', 'accesorio'])],
             'water_type' => ['nullable', Rule::in(['dulce', 'salada'])],
             'brand' => ['nullable', 'string', 'max:100'],
-            'warehouse_location' => ['nullable', 'string', 'max:24', 'regex:/^[A-Za-z0-9-]+$/'],
+            'warehouse_location' => ['nullable', 'string', 'max:24', 'regex:/^(?:Pasillo\s+)?[A-Za-z]-\d{2}-\d{2}$/i'],
             'price' => ['required', 'numeric', 'min:0', 'max:99999999.99'],
         ]);
 
         $data['sku'] = strtoupper($data['sku']);
-        $data['warehouse_location'] = strtoupper($data['warehouse_location'] ?? '') ?: null;
+        $data['warehouse_location'] = $this->normalizeWarehouseLocation($data['warehouse_location'] ?? null);
         $data['stock'] = 0;
         $data['is_active'] = true;
         $data['is_featured'] = false;
@@ -75,10 +75,10 @@ class InventoryController extends Controller
     public function updateLocation(Request $request, Product $product): RedirectResponse
     {
         $data = $request->validate([
-            'warehouse_location' => ['nullable', 'string', 'max:24', 'regex:/^[A-Za-z0-9-]+$/'],
+            'warehouse_location' => ['nullable', 'string', 'max:24', 'regex:/^(?:Pasillo\s+)?[A-Za-z]-\d{2}-\d{2}$/i'],
         ]);
 
-        $product->update(['warehouse_location' => strtoupper($data['warehouse_location'] ?? '') ?: null]);
+        $product->update(['warehouse_location' => $this->normalizeWarehouseLocation($data['warehouse_location'] ?? null)]);
 
         return back()->with('success', 'Ubicación de almacén actualizada.');
     }
@@ -190,5 +190,16 @@ class InventoryController extends Controller
         $product->update(['is_active' => false]);
 
         return back()->with('success', 'Producto retirado del catálogo. Se conservaron sus movimientos para auditoría.');
+    }
+
+    private function normalizeWarehouseLocation(?string $location): ?string
+    {
+        if (blank($location)) {
+            return null;
+        }
+
+        preg_match('/(?:Pasillo\s+)?([A-Za-z])-(\d{2})-(\d{2})/i', trim($location), $matches);
+
+        return sprintf('Pasillo %s-%s-%s', strtoupper($matches[1]), $matches[2], $matches[3]);
     }
 }

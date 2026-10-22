@@ -68,5 +68,6 @@ class DatabaseSeeder extends Seeder
         $this->call(SpeciesCatalogSeeder::class);
         $this->call(ExpandedSpeciesCatalogSeeder::class);
         $this->call(AquariumSuppliesSeeder::class);
+        $this->call(WarehouseLocationSeeder::class);
     }
 }
