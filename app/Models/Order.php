@@ -39,6 +39,11 @@ class Order extends Model
         return $this->hasOne(SimulatedOrderPayment::class);
     }
 
+    public function stripePaymentAttempt(): HasOne
+    {
+        return $this->hasOne(StripePaymentAttempt::class);
+    }
+
     public function fulfillmentEvents(): HasMany
     {
         return $this->hasMany(OrderFulfillmentEvent::class);

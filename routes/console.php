@@ -10,7 +10,7 @@ Artisan::command('inspire', function () {
 
 Schedule::command('aquarium:orders:expire-pickups --hours=48')
     ->everyMinute()
-    ->description('Cancela pedidos Click & Collect vencidos y libera inventario con reembolso simulado.');
+    ->description('Cancela pedidos Click & Collect vencidos, solicita reembolsos Stripe de pagos web y libera inventario.');
 
 Schedule::command('aquarium:carts:expire-reservations')
     ->everyMinute()

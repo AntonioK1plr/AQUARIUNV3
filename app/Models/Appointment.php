@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 class Appointment extends Model
 {
     public const STATUS_SCHEDULED = 'programada';
+    public const STATUS_PAYMENT_PENDING = 'pago_pendiente';
+    public const STATUS_PAYMENT_EXPIRED = 'pago_expirado';
     public const STATUS_COMPLETED = 'completada';
     public const STATUS_CANCELLED_CLIENT = 'cancelada_cliente';
     public const STATUS_CANCELLED_VET = 'cancelada_veterinario';
@@ -43,5 +45,10 @@ class Appointment extends Model
     public function payment(): HasOne
     {
         return $this->hasOne(SimulatedPayment::class);
+    }
+
+    public function stripePaymentAttempt(): HasOne
+    {
+        return $this->hasOne(StripePaymentAttempt::class);
     }
 }

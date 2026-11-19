@@ -2,18 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\InventoryMovement;
-use App\Models\Order;
-use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\CartReservation;
-use App\Models\SimulatedOrderPayment;
 use App\Services\BiologicalCompatibilityService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -72,6 +67,11 @@ class CartController extends Controller
             'compatibilityWarnings' => $warnings,
             'careAcceptedProductIds' => array_map('intval', array_keys($acceptedCare)),
             'reservedUntil' => $reservedUntil,
+            'stripe' => [
+                'enabled' => app(\App\Services\StripePaymentService::class)->isConfigured(),
+                'publishableKey' => app(\App\Services\StripePaymentService::class)->isConfigured() ? config('services.stripe.key') : null,
+                'mode' => app(\App\Services\StripePaymentService::class)->mode(),
+            ],
         ]);
     }
 
@@ -147,145 +147,6 @@ class CartController extends Controller
         $request->session()->put('responsible_care_acceptances', $acceptances);
 
         return back()->with('success', 'Producto eliminado del carrito.');
-    }
-
-    public function checkout(Request $request, BiologicalCompatibilityService $compatibility): RedirectResponse
-    {
-        $data = $request->validate([
-            'fulfillment_type' => ['required', Rule::in(['envio', 'click_collect'])],
-            'payment_method' => ['required', Rule::in(['tarjeta_simulada', 'transferencia_simulada'])],
-            'compatibility_confirmed' => ['nullable', 'boolean'],
-            'shipping_address' => ['required_if:fulfillment_type,envio', 'array'],
-            'shipping_address.recipient' => ['required_if:fulfillment_type,envio', 'nullable', 'string', 'max:120'],
-            'shipping_address.phone' => ['required_if:fulfillment_type,envio', 'nullable', 'string', 'regex:/^[0-9+() .-]{10,20}$/'],
-            'shipping_address.street' => ['required_if:fulfillment_type,envio', 'nullable', 'string', 'max:160'],
-            'shipping_address.exterior_number' => ['required_if:fulfillment_type,envio', 'nullable', 'string', 'max:20'],
-            'shipping_address.interior_number' => ['nullable', 'string', 'max:20'],
-            'shipping_address.neighborhood' => ['required_if:fulfillment_type,envio', 'nullable', 'string', 'max:120'],
-            'shipping_address.postal_code' => ['required_if:fulfillment_type,envio', 'nullable', 'regex:/^[0-9]{5}$/'],
-            'shipping_address.city' => ['required_if:fulfillment_type,envio', 'nullable', 'string', 'max:120'],
-            'shipping_address.state' => ['required_if:fulfillment_type,envio', 'nullable', 'string', 'max:120'],
-            'shipping_address.instructions' => ['nullable', 'string', 'max:500'],
-        ]);
-        $cart = $request->session()->get('cart', []);
-        if (! count($cart)) {
-            throw ValidationException::withMessages(['cart' => 'Agrega al menos un producto antes de confirmar la compra.']);
-        }
-
-        $cartProducts = Product::query()->whereIn('id', array_keys($cart))->get()->keyBy('id');
-        $liveProductIds = $cartProducts->filter(fn (Product $product) => $product->isLive())->keys()->map(fn ($id) => (string) $id)->all();
-        $acceptedIds = array_map('strval', array_keys($request->session()->get('responsible_care_acceptances', [])));
-        if (array_diff($liveProductIds, $acceptedIds)) {
-            throw ValidationException::withMessages(['care' => 'Falta aceptar la carta de cuidado responsable de los ejemplares vivos. Retira y vuelve a agregar esos productos.']);
-        }
-        $warnings = $compatibility->warnings($cartProducts->values());
-        if ($warnings && ! ($data['compatibility_confirmed'] ?? false)) {
-            throw ValidationException::withMessages(['compatibility' => 'Confirma que revisaste la advertencia biológica antes de continuar.']);
-        }
-
-        $sessionHash = $this->sessionHash($request);
-        $receipt = DB::transaction(function () use ($request, $data, $cart, $warnings, $sessionHash) {
-            $products = Product::query()->whereIn('id', array_keys($cart))->lockForUpdate()->get()->keyBy('id');
-            if ($products->count() !== count($cart)) {
-                throw ValidationException::withMessages(['cart' => 'Un producto del carrito ya no está disponible. Actualiza tu selección.']);
-            }
-            $subtotalCents = 0;
-            foreach ($cart as $productId => $quantity) {
-                $product = $products->get((int) $productId);
-                $reservation = CartReservation::query()->where('session_hash', $sessionHash)->where('product_id', $product->id)
-                    ->where('expires_at', '>', now())->lockForUpdate()->first();
-                $heldByOthers = CartReservation::query()->where('product_id', $product->id)->where('expires_at', '>', now())
-                    ->where('session_hash', '!=', $sessionHash)->sum('quantity');
-                $availableToThisReservation = $product->stock - $heldByOthers;
-                if (! $product->is_active || ! $reservation || $reservation->quantity < (int) $quantity || (int) $quantity > $availableToThisReservation) {
-                    throw ValidationException::withMessages(['cart' => "Stock insuficiente para {$product->name}. Actualiza tu carrito."]);
-                }
-                $subtotalCents += (int) round((float) $product->price * 100) * (int) $quantity;
-            }
-            $taxCents = (int) round($subtotalCents * 0.16);
-            $totalCents = $subtotalCents + $taxCents;
-            $orderNumber = 'AQ-WEB-'.now()->format('ymd').'-'.Str::upper(Str::random(6));
-            $pickupCode = $data['fulfillment_type'] === 'click_collect' ? 'AQ-'.Str::upper(Str::random(8)) : null;
-            $order = Order::create([
-                'order_number' => $orderNumber,
-                'client_id' => $request->user()->id,
-                'cashier_id' => null,
-                'customer_name' => $request->user()->name,
-                'customer_email' => $request->user()->email,
-                'channel' => 'ecommerce',
-                'status' => 'pagada_simulada',
-                'subtotal' => $this->decimal($subtotalCents),
-                'tax_rate' => 16,
-                'tax' => $this->decimal($taxCents),
-                'total' => $this->decimal($totalCents),
-                'fulfillment_type' => $data['fulfillment_type'],
-                'fulfillment_status' => $data['fulfillment_type'] === 'click_collect' ? 'pendiente_recoleccion' : 'preparando_envio',
-                'pickup_code' => $pickupCode,
-                'shipping_address' => $data['fulfillment_type'] === 'envio' ? $data['shipping_address'] : null,
-                'care_responsibility_accepted_at' => $request->session()->get('responsible_care_acceptances') ? now() : null,
-                'compatibility_acknowledged_at' => $warnings ? now() : null,
-                'compatibility_warnings' => $warnings ?: null,
-            ]);
-
-            foreach ($cart as $productId => $quantity) {
-                $product = $products->get((int) $productId);
-                $before = $product->stock;
-                $unitCents = (int) round((float) $product->price * 100);
-                $product->decrement('stock', (int) $quantity);
-                OrderItem::create([
-                    'order_id' => $order->id,
-                    'product_id' => $product->id,
-                    'sku' => $product->sku,
-                    'product_name' => $product->name,
-                    'unit_price' => $this->decimal($unitCents),
-                    'quantity' => (int) $quantity,
-                    'line_total' => $this->decimal($unitCents * (int) $quantity),
-                ]);
-                InventoryMovement::create([
-                    'product_id' => $product->id,
-                    'recorded_by' => $request->user()->id,
-                    'type' => 'venta_web',
-                    'quantity_delta' => -(int) $quantity,
-                    'quantity_before' => $before,
-                    'quantity_after' => $product->fresh()->stock,
-                    'reason' => "Pedido web {$order->order_number}",
-                    'notes' => $data['fulfillment_type'] === 'click_collect' ? "Click & Collect; código {$pickupCode}" : 'Envío; pago simulado local',
-                ]);
-            }
-
-            $payment = SimulatedOrderPayment::create([
-                'order_id' => $order->id,
-                'reference' => 'SIM-WEB-'.Str::upper(Str::random(12)),
-                'method' => $data['payment_method'],
-                'status' => 'cargo_simulado',
-                'amount' => $this->decimal($totalCents),
-            ]);
-
-            CartReservation::query()->where('session_hash', $sessionHash)->delete();
-
-            return [
-                'order_number' => $order->order_number,
-                'pickup_code' => $pickupCode,
-                'fulfillment_type' => $data['fulfillment_type'],
-                'shipping_address' => $order->shipping_address,
-                'subtotal' => $order->subtotal,
-                'tax' => $order->tax,
-                'total' => $order->total,
-                'payment_reference' => $payment->reference,
-            ];
-        });
-
-        $request->session()->forget('cart');
-        $request->session()->forget('responsible_care_acceptances');
-
-        return redirect()->route('orders.index')
-            ->with('success', 'Pedido confirmado con pago simulado. No se realizó ningún cobro real.')
-            ->with('receipt', $receipt);
-    }
-
-    private function decimal(int $cents): string
-    {
-        return number_format($cents / 100, 2, '.', '');
     }
 
     private function sessionHash(Request $request): string

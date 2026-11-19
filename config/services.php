@@ -31,4 +31,13 @@ return [
         ],
     ],
 
+    'stripe' => [
+        'key' => env('STRIPE_KEY'),
+        'secret' => env('STRIPE_SECRET'),
+        'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
+        'enabled' => env('STRIPE_ENABLED', true),
+        'mode' => env('STRIPE_MODE', 'test'),
+        'live_enabled' => env('STRIPE_LIVE_PAYMENTS_ENABLED', false),
+    ],
+
 ];

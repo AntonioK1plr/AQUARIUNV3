@@ -16,6 +16,7 @@ use App\Http\Controllers\OrderFulfillmentController;
 use App\Http\Controllers\TestReportController;
 use App\Http\Controllers\ClinicalRecordController;
 use App\Http\Controllers\AdminDashboardController;
+use App\Http\Controllers\StripeCheckoutController;
 
 Route::get('/', function () {
     return Inertia::render('Home', [
@@ -34,6 +35,7 @@ Route::get('/carrito', [CartController::class, 'index'])->name('cart.index');
 Route::post('/carrito/items', [CartController::class, 'add'])->name('cart.add');
 Route::patch('/carrito/items/{product}', [CartController::class, 'update'])->name('cart.update');
 Route::delete('/carrito/items/{product}', [CartController::class, 'remove'])->name('cart.remove');
+Route::post('/webhooks/stripe', [StripeCheckoutController::class, 'webhook'])->name('stripe.webhook');
 
 Route::middleware('guest')->group(function () {
     Route::get('/acceso', [AuthController::class, 'createLogin'])->name('login');
@@ -54,7 +56,7 @@ Route::middleware('auth')->group(function () {
 });
 
 Route::middleware(['auth', 'role:cliente'])->group(function () {
-    Route::post('/carrito/checkout', [CartController::class, 'checkout'])->name('cart.checkout');
+    Route::post('/carrito/pago/stripe/intento', [StripeCheckoutController::class, 'createIntent'])->name('cart.stripe.intent');
     Route::get('/cuenta/pedidos', [OrderHistoryController::class, 'index'])->name('orders.index');
 });
 
@@ -81,7 +83,7 @@ Route::middleware(['auth', 'role:administrador,almacenista'])->prefix('almacen')
 
 Route::middleware(['auth', 'role:cliente'])->prefix('citas')->name('appointments.')->group(function () {
     Route::get('/', [ClientAppointmentController::class, 'index'])->name('index');
-    Route::post('/', [ClientAppointmentController::class, 'store'])->name('store');
+    Route::post('/pago/stripe/intento', [ClientAppointmentController::class, 'createIntent'])->name('stripe.intent');
     Route::patch('/{appointment}/cancelar', [ClientAppointmentController::class, 'cancel'])->name('cancel');
 });
 

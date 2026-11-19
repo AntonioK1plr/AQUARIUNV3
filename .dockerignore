@@ -5,6 +5,7 @@
 .env.*
 !.env.example
 node_modules
+vendor
 tools
 storage/app/testing
 storage/logs/*.log

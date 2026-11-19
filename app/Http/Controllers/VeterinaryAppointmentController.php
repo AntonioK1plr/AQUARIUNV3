@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Appointment;
+use App\Services\StripePaymentService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -15,7 +16,7 @@ class VeterinaryAppointmentController extends Controller
     public function index(Request $request): Response
     {
         $appointments = Appointment::query()
-            ->with(['client:id,name,email,phone', 'payment:id,appointment_id,reference,amount,status'])
+            ->with(['client:id,name,email,phone', 'payment:id,appointment_id,reference,amount,status', 'stripePaymentAttempt:id,appointment_id,amount,status,paid_at,refunded_at'])
             ->where('veterinarian_id', $request->user()->id)
             ->whereIn('status', [Appointment::STATUS_SCHEDULED, Appointment::STATUS_COMPLETED, Appointment::STATUS_NO_SHOW])
             ->orderByRaw("CASE WHEN status = 'programada' THEN 0 ELSE 1 END")
@@ -80,7 +81,7 @@ class VeterinaryAppointmentController extends Controller
         return back()->with('success', 'Consulta guardada en el expediente de la cita.');
     }
 
-    public function cancel(Request $request, Appointment $appointment): RedirectResponse
+    public function cancel(Request $request, Appointment $appointment, StripePaymentService $stripe): RedirectResponse
     {
         abort_unless($appointment->veterinarian_id === $request->user()->id, 404);
         abort_unless($appointment->status === Appointment::STATUS_SCHEDULED, 409, 'La cita ya no está pendiente.');
@@ -88,6 +89,8 @@ class VeterinaryAppointmentController extends Controller
         $data = $request->validate([
             'cancellation_reason' => ['required', 'string', 'max:180'],
         ]);
+
+        $stripePayment = $appointment->stripePaymentAttempt()->where('status', 'succeeded')->first();
 
         DB::transaction(function () use ($appointment, $data) {
             $lockedAppointment = Appointment::query()->lockForUpdate()->findOrFail($appointment->id);
@@ -98,14 +101,28 @@ class VeterinaryAppointmentController extends Controller
                 'status' => Appointment::STATUS_CANCELLED_VET,
                 'cancellation_reason' => $data['cancellation_reason'],
             ]);
-            $lockedAppointment->payment()->update([
-                'status' => 'reembolsado_simulado',
-                'refund_reason' => 'Cancelación solicitada por veterinario: '.$data['cancellation_reason'],
-                'refunded_at' => now(),
-            ]);
         });
 
-        return back()->with('success', 'Cita cancelada y reembolso simulado registrado.');
+        if ($stripePayment) {
+            $reason = 'Cancelación solicitada por veterinario: '.$data['cancellation_reason'];
+            $stripePayment->update(['status' => 'refund_pending', 'refund_reason' => $reason]);
+            try {
+                $refundStatus = $stripe->refundPaymentIntent((string) $stripePayment->payment_intent_id, 'appointment', (int) $appointment->id);
+                $stripePayment->update(['status' => $refundStatus === 'succeeded' ? 'refunded' : 'refund_pending', 'refunded_at' => $refundStatus === 'succeeded' ? now() : null]);
+                return back()->with($refundStatus === 'succeeded' ? 'success' : 'warning', $refundStatus === 'succeeded'
+                    ? 'Cita cancelada y reembolso de prueba confirmado por Stripe.'
+                    : 'Cita cancelada. Stripe recibió la solicitud de reembolso y aún la está procesando.');
+            } catch (\Throwable $exception) {
+                report($exception);
+                return back()->with('warning', 'La cita se canceló, pero Stripe no confirmó el reembolso. Revisa el log local y el Dashboard de pruebas.');
+            }
+        }
+
+        $appointment->payment()->update([
+            'status' => 'legacy_cancelled',
+            'refund_reason' => 'Registro histórico simulado; no existió cargo en Stripe.',
+        ]);
+        return back()->with('success', 'Cita cancelada. Este registro histórico no tuvo un cobro de Stripe que reembolsar.');
     }
 
     public function markNoShow(Request $request, Appointment $appointment): RedirectResponse
@@ -117,9 +134,9 @@ class VeterinaryAppointmentController extends Controller
 
         $appointment->update([
             'status' => Appointment::STATUS_NO_SHOW,
-            'cancellation_reason' => 'El paciente no se presentó; no aplica reembolso simulado.',
+            'cancellation_reason' => 'El paciente no se presentó; no aplica reembolso.',
         ]);
 
-        return back()->with('success', 'Inasistencia registrada. El cargo simulado se conserva conforme a la regla del proyecto.');
+        return back()->with('success', 'Inasistencia registrada. El pago confirmado de Stripe no se reembolsa conforme a la regla del proyecto.');
     }
 }
