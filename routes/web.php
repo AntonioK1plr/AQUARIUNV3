@@ -17,6 +17,7 @@ use App\Http\Controllers\TestReportController;
 use App\Http\Controllers\ClinicalRecordController;
 use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\StripeCheckoutController;
+use App\Http\Controllers\FishCareGuideController;
 
 Route::get('/', function () {
     return Inertia::render('Home', [
@@ -30,6 +31,7 @@ Route::get('/', function () {
 })->name('home');
 
 Route::get('/catalogo', [CatalogController::class, 'index'])->name('catalog.index');
+Route::get('/cuidados-acuaticos', FishCareGuideController::class)->name('care.guide');
 
 Route::get('/carrito', [CartController::class, 'index'])->name('cart.index');
 Route::post('/carrito/items', [CartController::class, 'add'])->name('cart.add');

@@ -341,9 +341,9 @@ export default function Home({ featuredProducts = [], auth = { user: null }, car
                         <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                             {[
                                 { number: '01', title: 'Clínica veterinaria', body: 'Orientación y atención especializada para fauna acuática, diagnóstico y seguimiento clínico.', link: '#clinica', label: 'Conocer la clínica' },
-                                { number: '02', title: 'Análisis y calidad del agua', body: 'Evaluación de parámetros del agua y recomendaciones para mejorar las condiciones del acuario.', link: 'mailto:info@aquarium.com.mx?subject=An%C3%A1lisis%20de%20agua', label: 'Solicitar información' },
-                                { number: '03', title: 'Instalación de acuarios', body: 'Asesoría para planear e instalar sistemas acuáticos con equipo de soporte adecuado.', link: 'mailto:info@aquarium.com.mx?subject=Instalaci%C3%B3n%20de%20acuario', label: 'Consultar instalación' },
-                                { number: '04', title: 'Asesoría biológica', body: 'Acompañamiento en selección responsable, compatibilidad y cuidados básicos de las especies.', link: '/catalogo', label: 'Explorar catálogo' },
+                                { number: '02', title: 'Análisis y calidad del agua', body: 'Consulta una guía general sobre agua acondicionada, filtración, ciclado y parámetros básicos.', link: '/cuidados-acuaticos', label: 'Ver guía de cuidados' },
+                                { number: '03', title: 'Instalación de acuarios', body: 'Conoce el volumen, equipo y sustrato de referencia según las especies disponibles en el catálogo.', link: '/cuidados-acuaticos', label: 'Ver guía de cuidados' },
+                                { number: '04', title: 'Catálogo de especies y productos', body: 'Revisa peces, acuarios, filtros, alimentos y sustratos disponibles en AQUARIUM.', link: '/catalogo', label: 'Explorar catálogo' },
                             ].map((service) => (
                                 <article key={service.number} className="flex min-h-56 flex-col rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-900/[0.06]">
                                     <span className="text-xs font-extrabold tracking-widest text-[#0ba8b5]">SERVICIO {service.number}</span>

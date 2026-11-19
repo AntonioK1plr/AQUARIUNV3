@@ -6,15 +6,24 @@ Este repositorio queda preparado para publicar Laravel 12 + React/Inertia en un 
 
 El Dockerfile de Render construye los recursos de Vite, sirve Laravel con Nginx + PHP-FPM y publica `/up` como health check. La base no se crea ni se migra al construir la imagen.
 
-## Costos y persistencia
+## Plan gratuito para la revisión
 
-Render ofrece una instancia PostgreSQL gratuita con límites y caducidad; para conservar datos de forma estable se eligió una instancia pagada. El precio depende del plan y almacenamiento que se seleccione en el Dashboard. Render anuncia almacenamiento expandible y recuperación de punto en el tiempo para instancias pagadas; verifica el costo final antes de confirmar la creación en tu cuenta. [Precios oficiales de Render](https://render.com/pricing), [copias y recuperación de Postgres](https://render.com/docs/postgresql-backups).
+La configuración elegida para esta etapa es **Web Service Free + Render Postgres Free**, sin crear servicios pagados ni cron jobs. Es apropiada para la presentación del 30 de noviembre y el posible periodo de correcciones hasta el 18 de diciembre, siempre que la base se cree a tiempo y se conserve un respaldo local.
 
-El servicio web puede tener costo independiente de la base. Para ejecutar migraciones en la fase Pre-Deploy Render requiere un servicio web pagado. La fase Pre-Deploy es el lugar recomendado para ejecutar `php artisan migrate --force`. [Deploys y comandos Pre-Deploy](https://render.com/docs/deploys).
+Límites importantes del plan gratuito:
+
+- La web se suspende después de 15 minutos sin tráfico y puede tardar alrededor de un minuto en despertar.
+- PostgreSQL Free tiene límite de 1 GB, no incluye backups administrados y vence 30 días después de crearse. Tras vencer, hay un periodo de gracia limitado antes de que Render elimine la base.
+- El sistema de archivos del Web Service es temporal; los archivos subidos ahí no sirven como almacenamiento permanente. Las imágenes incluidas en `public/` sí se compilan en la imagen de la aplicación.
+- El plan Free no ofrece shell ni Pre-Deploy; tampoco se creará un Cron Job, que tiene costo mínimo mensual. Por ello las tareas programadas no correrán automáticamente.
+
+Render documenta estos límites en [Deploy for Free](https://render.com/docs/free). Revisa el contador de caducidad de la base en el Dashboard y descarga un `pg_dump` antes de que venza. Si la base se crea el 19 de noviembre, el límite de 30 días queda aproximadamente el 19 de diciembre: alcanza el plazo máximo del 18 de diciembre con un margen de un día. No prolongues el uso con datos importantes sin exportar o actualizar el plan.
+
+Las migraciones se ejecutan desde el entorno local contra la **External Database URL** protegida con `sslmode=require`, antes de publicar la aplicación. La aplicación en Render se conectará a la **Internal Database URL** porque web y base compartirán región. No actives `Pre-Deploy` ni un plan pagado.
 
 ## Antes de migrar datos
 
-1. En Render Dashboard crea PostgreSQL pagado, versión PostgreSQL compatible con el servidor actual y región cercana al Web Service. Copia el **Internal Database URL** como secreto; no lo pongas en Git ni en capturas.
+1. En Render Dashboard crea PostgreSQL **Free**, versión PostgreSQL compatible con el servidor actual y región cercana al Web Service. Copia la **Internal Database URL** como secreto; no la pongas en Git ni en capturas.
 2. Anota tamaño y versión de la base actual, y genera una copia de seguridad comprobable. Si la base actual es Supabase, la copia lógica se hace con `pg_dump`; Supabase documenta la exportación de su base remota con `supabase db dump` y sus opciones de migración. [Migración y copias de Supabase](https://supabase.com/docs/guides/platform/migrating-within-supabase).
 3. Programa una ventana sin escrituras (detén ventas, inventario, citas y usuarios) para la copia final. No cambies `DB_URL` hasta restaurar y verificar el destino. Conserva intacta la base anterior hasta que la nueva pase la revisión.
 4. Exporta el esquema `public` de PostgreSQL sin propietarios ni ACL ligados al proyecto de origen. Restaura en la base Render vacía y verifica tablas, índices, secuencias, conteos de filas, stock agregado y movimientos históricos. No migres esquemas internos administrados de Supabase a Render.
@@ -22,7 +31,7 @@ El servicio web puede tener costo independiente de la base. Para ejecutar migrac
 
 La copia y restauración final requieren acceso autenticado a ambas bases. Este cambio no se ejecuta desde el repositorio y aún no se ha hecho.
 
-## Crear el servicio web
+## Crear el servicio web gratuito
 
 1. Conecta en Render el repositorio y crea un **Web Service** con Runtime **Docker**.
 2. Usa `docker/render/Dockerfile` como ruta de Dockerfile y la raíz del repo `aquarium` como contexto.
@@ -52,9 +61,9 @@ La copia y restauración final requieren acceso autenticado a ambas bases. Este 
 
 No agregues claves de Stripe al Dockerfile, archivos versionados, comandos de terminal compartidos ni logs.
 
-5. Configura Pre-Deploy Command `php artisan migrate --force`. No uses `migrate:fresh`, `db:wipe` ni seeders sobre la base restaurada.
-6. Despliega staging con claves test. Verifica `/up`, inicio de sesión, catálogo, inventario, flujo de citas, compras y persistencia tras reiniciar el Web Service.
-7. Crea un Render Cron Job con el mismo repositorio, Dockerfile/contexto y variables necesarias para PostgreSQL, con el comando `php artisan schedule:run` y periodicidad cada minuto. AQUARIUM libera reservas y procesa vencimientos con tareas programadas; un servicio web que no ejecute el scheduler dejaría esos apartados retenidos. Comprueba el precio del Cron Job en el Dashboard antes de crearlo. [Cron Jobs de Render](https://render.com/docs/cronjobs).
+5. **No configures Pre-Deploy:** no está disponible en el Web Service gratuito. Antes del primer despliegue, ejecuta las migraciones desde el contenedor local usando la URL externa de PostgreSQL y `DB_SSLMODE=require`. No uses `migrate:fresh`, `db:wipe` ni seeders sobre la base restaurada.
+6. Selecciona el plan **Free** para el Web Service y mantén apagado Auto-Deploy mientras se terminan de poner las variables. El servicio se dormirá cuando no reciba visitas; no es un fallo.
+7. No crees un Cron Job en esta etapa para mantener el costo en cero. La expiración de reservas y otras tareas programadas no tendrán ejecución periódica; la sección de información de cuidados no requiere ninguna tarea.
 
 ## Stripe: staging y activación real
 
@@ -83,11 +92,11 @@ El comando suma 25 al stock actual de cada fila de `products`, no sustituye el s
 - Reiniciar servicio y repetir lectura de catálogo, cuenta, pedidos y citas para confirmar persistencia.
 - Revisar logs de Render y Stripe para respuestas HTTP, eventos webhook y errores SQL; nunca compartir secretos.
 
-## Lo que hace falta para ejecutar la migración
+## Lo que hace falta para ejecutar la migración gratuita
 
-- Acceso a Render Dashboard para crear la base pagada y el Web Service.
+- Acceso a Render Dashboard para crear la base Free y el Web Service Free.
 - URL de conexión de origen accesible para exportar, y la URL interna de destino que Render genera.
 - Claves Stripe de prueba recién rotadas.
-- Programar la ventana de solo lectura para el corte de datos.
+- Programar la ventana de solo lectura para el corte de datos y conservar el respaldo local durante toda la revisión.
 
 No se han cargado secretos ni se ha creado servicio remoto desde este cambio local.
