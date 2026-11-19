@@ -46,7 +46,7 @@ class StripePaymentService
         $intent = $this->client()->paymentIntents->create([
                 'amount' => $amountCents,
                 'currency' => 'mxn',
-                'payment_method_types' => ['card'],
+                'allowed_payment_method_types' => ['card'],
                 'receipt_email' => $email,
                 'description' => "AQUARIUM {$reference} · ".($this->isLiveMode() ? 'pago' : 'prueba'),
                 'metadata' => [

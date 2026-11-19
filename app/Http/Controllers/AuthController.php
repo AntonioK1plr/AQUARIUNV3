@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\Appointment;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -100,8 +101,25 @@ class AuthController extends Controller
 
     public function account(Request $request): Response
     {
+        $user = $request->user();
+        $clinicalRecords = $user->role === User::ROLE_CLIENTE
+            ? Appointment::query()
+                ->with('veterinarian:id,name')
+                ->where('client_id', $user->id)
+                ->where('status', Appointment::STATUS_COMPLETED)
+                ->whereNotNull('diagnosis')
+                ->orderByDesc('clinical_recorded_at')
+                ->orderByDesc('scheduled_at')
+                ->paginate(5, [
+                    'id', 'client_id', 'veterinarian_id', 'patient_name', 'species', 'scheduled_at',
+                    'diagnosis', 'prescription', 'clinical_data', 'clinical_record_hash', 'clinical_recorded_at',
+                ], 'recetas_page')
+                ->withQueryString()
+            : null;
+
         return Inertia::render('Account/Show', [
-            'user' => $request->user()->only('name', 'email', 'phone', 'address', 'role'),
+            'user' => $user->only('name', 'email', 'phone', 'address', 'role'),
+            'clinicalRecords' => $clinicalRecords,
         ]);
     }
 

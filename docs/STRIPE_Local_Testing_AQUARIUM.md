@@ -4,6 +4,8 @@
 
 La tienda web (`/carrito`) y la agenda de citas (`/citas`) aceptan pagos con tarjeta mediante **Stripe Payment Element + PaymentIntents** en MXN. Se retiraron los pagos simulados del checkout de la tienda y de las citas. El POS físico mantiene sus registros simulados independientes porque no es un pago en línea.
 
+Los PaymentIntents limitan los métodos disponibles a tarjeta mediante `allowed_payment_method_types`, compatible con la versión actual de la API de Stripe. No se debe volver a usar el parámetro obsoleto `payment_method_types`.
+
 La integración está limitada deliberadamente a `APP_ENV=local`, claves `pk_test_` / `sk_test_`, `STRIPE_TEST_MODE_ONLY=true` y un secreto de webhook `whsec_`. Si falta cualquiera de esos requisitos, el botón queda desactivado. No se deben usar claves live ni datos de tarjetas reales. AQUARIUM no recibe ni guarda el número de tarjeta o CVC: Stripe.js muestra el formulario seguro.
 
 El pedido o la cita se crea como pendiente. La interfaz no considera el retorno del navegador una prueba de pago: el webhook firmado `payment_intent.succeeded` verifica modo, moneda e importe y registra el evento de forma idempotente. Entonces confirma la compra y descuenta inventario, o confirma el horario de la cita. Una cita aparta temporalmente el horario por 30 minutos mientras se completa el pago. Si se cancela una cita pagada, AQUARIUM solicita el reembolso a Stripe; la inasistencia no lo solicita. Los eventos fallidos o cancelados no se marcan pagados.
