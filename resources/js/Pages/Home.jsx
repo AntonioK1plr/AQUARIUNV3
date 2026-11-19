@@ -19,16 +19,8 @@ const money = new Intl.NumberFormat('es-MX', {
     maximumFractionDigits: 0,
 });
 
-function FishMark() {
-    return (
-        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#08c2cd] text-[#0b192c]">
-            <svg viewBox="0 0 32 32" aria-hidden="true" className="h-6 w-6 fill-none stroke-current stroke-[1.8]">
-                <path d="M4 16c4.5-6.2 13.1-7.5 19.5-1.8L28 11v10l-4.5-3.2C17.1 23.5 8.5 22.2 4 16Z" />
-                <circle cx="12" cy="14" r="1" className="fill-current" />
-                <path d="M17 11.2c-2.6 3.1-2.6 6.5 0 9.6" />
-            </svg>
-        </span>
-    );
+function BrandCircle() {
+    return <span aria-hidden="true" className="h-10 w-10 shrink-0 rounded-full bg-[#08c2cd]" />;
 }
 
 function PinIcon() {
@@ -162,7 +154,7 @@ export default function Home({ featuredProducts = [], auth = { user: null }, car
             <header className="sticky top-0 z-40 border-b border-white/10 bg-[#0b192c] text-white shadow-lg shadow-slate-950/10">
                 <div className="mx-auto flex h-[72px] max-w-[1440px] items-center justify-between gap-5 px-5 sm:px-8">
                     <a href="#inicio" className="flex shrink-0 items-center gap-2.5" aria-label="AQUARIUM, inicio">
-                        <FishMark />
+                        <BrandCircle />
                         <span className="text-lg font-black tracking-tight sm:text-xl">AQUARIUM</span>
                         <span className="hidden rounded bg-[#08c2cd]/15 px-2 py-1 text-[9px] font-bold uppercase tracking-wide text-[#08c2cd] sm:inline-flex">Responsable</span>
                     </a>
@@ -357,7 +349,7 @@ export default function Home({ featuredProducts = [], auth = { user: null }, car
                 <div className="mx-auto grid max-w-[1440px] gap-10 px-5 py-11 sm:grid-cols-2 sm:px-8 lg:grid-cols-[1.6fr_1fr_1fr_1fr] lg:gap-14 lg:py-14">
                     <div>
                         <a href="#inicio" className="flex items-center gap-2.5 text-white">
-                            <FishMark />
+                            <BrandCircle />
                             <span className="text-xl font-black tracking-tight">AQUARIUM</span>
                         </a>
                         <p className="mt-4 max-w-sm text-sm leading-6 text-slate-400">Comprometidos con el bienestar de la fauna acuática y la educación del acuarista mexicano bajo estrictas normas biológicas y de conservación.</p>

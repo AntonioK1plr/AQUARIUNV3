@@ -6,6 +6,8 @@ Este repositorio queda preparado para publicar Laravel 12 + React/Inertia en un 
 
 El Dockerfile de Render construye los recursos de Vite, sirve Laravel con Nginx + PHP-FPM y publica `/up` como health check. La base no se crea ni se migra al construir la imagen.
 
+Para clonar y probar la misma base en macOS antes del despliegue, sigue [`PRUEBAS_LOCALES_MAC_AQUARIUM.md`](PRUEBAS_LOCALES_MAC_AQUARIUM.md). El respaldo `.dump` se mantiene fuera de Git; transfiérelo de forma privada y conserva la copia local antes de migrar datos a Render.
+
 ## Plan gratuito para la revisión
 
 La configuración elegida para esta etapa es **Web Service Free + Render Postgres Free**, sin crear servicios pagados ni cron jobs. Es apropiada para la presentación del 30 de noviembre y el posible periodo de correcciones hasta el 18 de diciembre, siempre que la base se cree a tiempo y se conserve un respaldo local.
@@ -19,7 +21,7 @@ Límites importantes del plan gratuito:
 
 Render documenta estos límites en [Deploy for Free](https://render.com/docs/free). Revisa el contador de caducidad de la base en el Dashboard y descarga un `pg_dump` antes de que venza. Si la base se crea el 19 de noviembre, el límite de 30 días queda aproximadamente el 19 de diciembre: alcanza el plazo máximo del 18 de diciembre con un margen de un día. No prolongues el uso con datos importantes sin exportar o actualizar el plan.
 
-Las migraciones se ejecutan desde el entorno local contra la **External Database URL** protegida con `sslmode=require`, antes de publicar la aplicación. La aplicación en Render se conectará a la **Internal Database URL** porque web y base compartirán región. No actives `Pre-Deploy` ni un plan pagado.
+Las migraciones y restauraciones se ejecutan desde el entorno local contra la **External Database URL** protegida con `sslmode=require`. La aplicación en Render se conectará a la **Internal Database URL** porque web y base compartirán región. Render documenta el uso de la URL externa desde equipos locales y de la interna entre servicios en la misma región ([conexiones a Postgres](https://render.com/docs/postgresql-creating-connecting)). No actives `Pre-Deploy` ni un plan pagado.
 
 ## Antes de migrar datos
 
@@ -33,10 +35,10 @@ La copia y restauración final requieren acceso autenticado a ambas bases. Este 
 
 ## Crear el servicio web gratuito
 
-1. Conecta en Render el repositorio y crea un **Web Service** con Runtime **Docker**.
+1. Conecta en Render el repositorio y crea un **Web Service** con Runtime **Docker**. Render construye la imagen desde el Dockerfile del repositorio ([Docker en Render](https://render.com/docs/docker)).
 2. Usa `docker/render/Dockerfile` como ruta de Dockerfile y la raíz del repo `aquarium` como contexto.
 3. Configura Health Check Path `/up`.
-4. En Variables de entorno configura:
+4. En **Environment Variables** configura los valores del servicio. Render recomienda guardar ahí variables y secretos, no versionarlos ([Environment Variables and Secrets](https://render.com/docs/configure-environment-variables)):
 
 | Variable | Valor |
 |---|---|

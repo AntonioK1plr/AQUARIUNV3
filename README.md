@@ -2,6 +2,8 @@
 
 Para preparar pagos locales con Stripe en modo test, consulta [docs/STRIPE_Local_Testing_AQUARIUM.md](docs/STRIPE_Local_Testing_AQUARIUM.md). El flujo solo se activa con claves `test` y Webhook local; el modo live está bloqueado.
 
+Para instalar y probar el proyecto en macOS, usa [docs/PRUEBAS_LOCALES_MAC_AQUARIUM.md](docs/PRUEBAS_LOCALES_MAC_AQUARIUM.md). Para el futuro despliegue, consulta [docs/RENDER_DEPLOYMENT_AQUARIUM.md](docs/RENDER_DEPLOYMENT_AQUARIUM.md).
+
 Aplicación local en preparación para el sistema AQUARIUM. **QU4.pdf es la línea base normativa actual**; el diagrama de despliegue determina la topología prevista. Los demás documentos son referencias históricas o técnicas.
 
 La portada pública conserva el diseño de AQUARIUM.png; la navegación incluye Inicio, Catálogo, Clínica e Información (servicios del negocio). La ruta `/catalogo` consulta PostgreSQL local y permite búsqueda Full Text por nombre, descripción, SKU y marca, además de filtros combinables por tipo de agua, marca y rango de precio. La búsqueda en PostgreSQL usa un índice GIN. El registro, inicio/cierre de sesión, recuperación de contraseña y edición de perfil funcionan localmente; el registro público siempre crea cuentas con rol `cliente`, y el middleware aplica permisos por rol. El carrito persiste en la sesión y aparta inventario por 30 minutos. El checkout web acepta únicamente Stripe Payment Element en modo de prueba; con claves ausentes se mantiene deshabilitado. Confirma pedidos tras el webhook firmado y permite Click & Collect o envío. Guía: `docs/STRIPE_Local_Testing_AQUARIUM.md`.
@@ -29,7 +31,7 @@ La sucursal atiende de 09:00 a 22:00. Las citas solo pueden reservarse entre 09:
 - Vite 8.3.4 y Tailwind CSS 3.4.19.
 - PostgreSQL 16 y Redis 7 en Docker Compose.
 - PHPUnit 11.5.57; Selenium WebDriver 4.51.0; Apache JMeter 5.6.3 con Eclipse Temurin JDK 21.0.12.1 (instalados localmente bajo `tools/`, ignorado por Git).
-- Destino futuro previsto: Render y Supabase; el desarrollo actual no se conecta a esos servicios.
+- Destino futuro previsto: Render Web Service y Render PostgreSQL; el desarrollo local no se conecta a esos servicios.
 
 Se toma QU4.pdf como línea base funcional y se usan versiones actuales compatibles con sus requisitos. Las sustituciones o actualizaciones de versión se registran en [`docs/FASE_CERO.md`](docs/FASE_CERO.md).
 
