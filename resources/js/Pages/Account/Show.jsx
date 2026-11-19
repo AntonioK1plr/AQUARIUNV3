@@ -14,15 +14,14 @@ const staffShortcuts = {
         { href: '/admin', label: 'Panel de administración', detail: 'Resumen y accesos de operación' },
         { href: '/admin/empleados', label: 'Gestión de empleados', detail: 'Roles, cuentas y datos del equipo' },
         { href: '/almacen', label: 'Inventario', detail: 'Existencias, lotes y movimientos' },
-        { href: '/pos', label: 'Punto de venta', detail: 'Ventas simuladas, entregas y corte' },
-        { href: '/admin/pruebas', label: 'Pruebas y reportes', detail: 'Resultados locales de validación' },
+        { href: '/pos', label: 'Punto de venta', detail: 'Ventas de mostrador, entregas y corte' },
     ],
     almacenista: [
         { href: '/almacen', label: 'Control de inventario', detail: 'Productos, existencias y lotes' },
         { href: '/almacen/picking', label: 'Preparación de pedidos', detail: 'Picking y despacho de pedidos' },
     ],
     cajero_pos: [
-        { href: '/pos', label: 'Abrir caja POS', detail: 'Registrar una venta de prueba' },
+        { href: '/pos', label: 'Abrir caja POS', detail: 'Registrar una venta de mostrador' },
         { href: '/pos/recolecciones', label: 'Entregar pedidos', detail: 'Validar código y registrar entrega' },
         { href: '/pos/cierre-z', label: 'Cierre de caja', detail: 'Consultar y generar el corte diario' },
     ],

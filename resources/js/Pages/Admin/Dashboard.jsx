@@ -13,10 +13,9 @@ const modules = [
     { href: '/admin/empleados', icon: '◎', title: 'Gestión de empleados', description: 'Consulta el directorio del personal y registra cuentas para cada rol.' },
     { href: '/almacen', icon: '▤', title: 'Inventario y almacén', description: 'Revisa existencias, lotes, movimientos, recepciones y salidas.' },
     { href: '/almacen/picking', icon: '✓', title: 'Preparación de pedidos', description: 'Supervisa el picking, marca pedidos listos y registra despachos.' },
-    { href: '/pos', icon: '▦', title: 'Punto de venta', description: 'Registra ventas simuladas y consulta el movimiento reciente de caja.' },
+    { href: '/pos', icon: '▦', title: 'Punto de venta', description: 'Registra ventas de mostrador y consulta el movimiento reciente de caja.' },
     { href: '/pos/recolecciones', icon: '⌑', title: 'Entregas y recolecciones', description: 'Valida el código de recogida y registra la entrega del pedido.' },
     { href: '/pos/cierre-z', icon: '▣', title: 'Cierre de caja', description: 'Consulta o registra el corte diario de la caja.' },
-    { href: '/admin/pruebas', icon: '◷', title: 'Pruebas y reportes', description: 'Consulta reportes locales de PHPUnit, Selenium, JMeter y PostgreSQL.' },
     { href: '/catalogo', icon: '◈', title: 'Catálogo público', description: 'Revisa el catálogo como lo ven los clientes.' },
 ];
 
@@ -42,7 +41,7 @@ export default function AdminDashboard({ auth, summary, roleCounts }) {
                 <div>
                     <p className="text-xs font-extrabold uppercase tracking-[0.15em] text-teal-700">Panel de control</p>
                     <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">Hola, {auth.user?.name}</h1>
-                    <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">Administra el personal y accede a las áreas operativas de AQUARIUM desde un solo lugar. Las operaciones de cobro y pago en este entorno son simuladas.</p>
+                    <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">Administra el personal y accede a las áreas operativas de AQUARIUM desde un solo lugar. Los pagos en línea de la tienda y las citas se procesan mediante Stripe.</p>
                 </div>
                 <Link href="/admin/empleados" className="inline-flex items-center gap-2 rounded-xl bg-[#08c2cd] px-5 py-3 text-sm font-extrabold text-[#0b192c] shadow-sm transition hover:bg-[#20d5dc]"><span className="text-lg leading-none">+</span> Registrar empleado</Link>
             </section>

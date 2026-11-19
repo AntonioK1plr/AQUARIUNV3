@@ -13,7 +13,6 @@ use App\Http\Controllers\PosController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\OrderHistoryController;
 use App\Http\Controllers\OrderFulfillmentController;
-use App\Http\Controllers\TestReportController;
 use App\Http\Controllers\ClinicalRecordController;
 use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\StripeCheckoutController;
@@ -68,7 +67,6 @@ Route::middleware(['auth', 'role:administrador'])->prefix('admin')->name('admin.
     Route::post('/empleados', [EmployeeController::class, 'store'])->name('employees.store');
     Route::patch('/empleados/{employee}/estado', [EmployeeController::class, 'updateStatus'])->name('employees.status');
     Route::delete('/empleados/{employee}', [EmployeeController::class, 'destroy'])->name('employees.destroy');
-    Route::get('/pruebas', [TestReportController::class, 'index'])->name('testing.index');
 });
 
 Route::middleware(['auth', 'role:administrador,almacenista'])->prefix('almacen')->name('warehouse.')->group(function () {

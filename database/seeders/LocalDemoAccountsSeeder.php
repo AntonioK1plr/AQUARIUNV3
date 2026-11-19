@@ -24,11 +24,11 @@ class LocalDemoAccountsSeeder extends Seeder
         }
 
         $accounts = [
-            ['name' => 'Cliente de Pruebas AQUARIUM', 'email' => 'cliente.demo@aquarium.local', 'role' => User::ROLE_CLIENTE],
-            ['name' => 'Administración de Pruebas AQUARIUM', 'email' => 'admin.demo@aquarium.local', 'role' => User::ROLE_ADMINISTRADOR],
-            ['name' => 'Almacén de Pruebas AQUARIUM', 'email' => 'almacen.demo@aquarium.local', 'role' => User::ROLE_ALMACENISTA],
-            ['name' => 'Caja POS de Pruebas AQUARIUM', 'email' => 'caja.demo@aquarium.local', 'role' => User::ROLE_CAJERO_POS],
-            ['name' => 'Veterinaria de Pruebas AQUARIUM', 'email' => 'veterinario.demo@aquarium.local', 'role' => User::ROLE_VETERINARIO],
+            ['name' => 'Cliente AQUARIUM', 'email' => 'cliente.demo@aquarium.local', 'role' => User::ROLE_CLIENTE],
+            ['name' => 'Administración AQUARIUM', 'email' => 'admin.demo@aquarium.local', 'role' => User::ROLE_ADMINISTRADOR],
+            ['name' => 'Almacén AQUARIUM', 'email' => 'almacen.demo@aquarium.local', 'role' => User::ROLE_ALMACENISTA],
+            ['name' => 'Caja POS AQUARIUM', 'email' => 'caja.demo@aquarium.local', 'role' => User::ROLE_CAJERO_POS],
+            ['name' => 'Veterinario AQUARIUM', 'email' => 'veterinario.demo@aquarium.local', 'role' => User::ROLE_VETERINARIO],
         ];
 
         foreach ($accounts as $account) {

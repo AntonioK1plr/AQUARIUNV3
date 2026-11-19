@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { router } from '@inertiajs/react';
+import { Link, router } from '@inertiajs/react';
 
 const categories = [
     { id: 'dulce', title: 'Peces Agua Dulce', image: '/images/cat-freshwater.jpg' },
@@ -101,7 +101,6 @@ function ProductCard({ product, quantity, onAdd }) {
 
 export default function Home({ featuredProducts = [], auth = { user: null }, cart: savedCart = { itemsCount: 0 } }) {
     const [query, setQuery] = useState('');
-    const [activeCategory, setActiveCategory] = useState('');
     const [cart, setCart] = useState({});
     const [notice, setNotice] = useState('');
     const [menuOpen, setMenuOpen] = useState(false);
@@ -121,11 +120,10 @@ export default function Home({ featuredProducts = [], auth = { user: null }, car
     const visibleProducts = useMemo(() => {
         const normalized = query.trim().toLocaleLowerCase('es-MX');
         return products.filter((product) => {
-            const matchesCategory = !activeCategory || product.category === activeCategory;
             const matchesQuery = !normalized || `${product.title} ${product.family}`.toLocaleLowerCase('es-MX').includes(normalized);
-            return matchesCategory && matchesQuery;
+            return matchesQuery;
         });
-    }, [activeCategory, query, products]);
+    }, [query, products]);
 
     function addToCart(product) {
         setCart((current) => ({ ...current, [product.id]: (current[product.id] ?? 0) + 1 }));
@@ -284,15 +282,11 @@ export default function Home({ featuredProducts = [], auth = { user: null }, car
                             <div>
                                 <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#0ba8b5]">Selección de especialistas</p>
                                 <h2 className="mt-2 text-2xl font-extrabold tracking-tight sm:text-3xl">Especies recomendadas</h2>
-                                {(query || activeCategory) && <p className="mt-2 text-sm text-slate-500">{visibleProducts.length} resultados {query && <>para “{query}”</>}{activeCategory && <> en {categories.find((category) => category.id === activeCategory)?.title}</>}</p>}
+                                {query && <p className="mt-2 text-sm text-slate-500">{visibleProducts.length} resultados para “{query}”</p>}
                             </div>
-                            <button
-                                type="button"
-                                onClick={() => { setActiveCategory(''); setQuery(''); }}
-                                className="text-sm font-bold text-[#079fab] transition hover:text-[#0b192c]"
-                            >
+                            <Link href="/catalogo" className="text-sm font-bold text-[#079fab] transition hover:text-[#0b192c]">
                                 Ver todas las especies <span aria-hidden="true">→</span>
-                            </button>
+                            </Link>
                         </div>
                         {visibleProducts.length > 0 ? (
                             <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-5">
@@ -303,8 +297,8 @@ export default function Home({ featuredProducts = [], auth = { user: null }, car
                         ) : (
                             <div className="mt-6 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-12 text-center">
                                 <p className="font-bold">No encontramos coincidencias en esta selección.</p>
-                                <p className="mt-1 text-sm text-slate-500">Prueba con otro nombre o consulta todas las especies.</p>
-                                <button type="button" onClick={() => { setActiveCategory(''); setQuery(''); }} className="mt-4 rounded-lg bg-[#0b192c] px-4 py-2 text-sm font-bold text-white">Ver catálogo</button>
+                                <p className="mt-1 text-sm text-slate-500">Intenta con otro nombre o consulta todas las especies.</p>
+                                <Link href="/catalogo" className="mt-4 inline-flex rounded-lg bg-[#0b192c] px-4 py-2 text-sm font-bold text-white">Ver catálogo</Link>
                             </div>
                         )}
                     </section>
@@ -325,9 +319,11 @@ export default function Home({ featuredProducts = [], auth = { user: null }, car
                             </p>
                             <p className="mt-2 text-xs font-semibold text-slate-600">Horario de sucursal: 09:00–22:00 · Agenda de citas: 09:00–19:00, sujeta a disponibilidad veterinaria.</p>
                         </div>
-                        <a href="/citas" className="shrink-0 rounded-xl bg-[#0b192c] px-5 py-3 text-center text-sm font-bold text-white transition hover:bg-[#173555]">
-                            Agendar cita médica
-                        </a>
+                        {auth.user?.role === 'cliente' ? (
+                            <a href="/citas" className="shrink-0 rounded-xl bg-[#0b192c] px-5 py-3 text-center text-sm font-bold text-white transition hover:bg-[#173555]">Agendar cita médica</a>
+                        ) : !auth.user ? (
+                            <a href="/acceso" className="shrink-0 rounded-xl bg-[#0b192c] px-5 py-3 text-center text-sm font-bold text-white transition hover:bg-[#173555]">Iniciar sesión para agendar</a>
+                        ) : null}
                     </div>
                 </section>
 

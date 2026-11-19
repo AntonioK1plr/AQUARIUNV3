@@ -16,7 +16,6 @@ export default function OperationsLayout({ title, eyebrow = 'OPERACIÓN LOCAL', 
                     <nav className="hidden items-center gap-5 text-sm md:flex" aria-label="Módulos internos">
                         {role === 'administrador' && <a href="/admin" className={`hover:text-[#08c2cd] ${title.includes('Panel') ? 'font-bold text-[#08c2cd]' : 'text-slate-300'}`}>Panel</a>}
                         {role === 'administrador' && <a href="/admin/empleados" className={`hover:text-[#08c2cd] ${title.includes('Personal') ? 'font-bold text-[#08c2cd]' : 'text-slate-300'}`}>Personal</a>}
-                        {role === 'administrador' && <a href="/admin/pruebas" className={`hover:text-[#08c2cd] ${title.includes('Pruebas') ? 'font-bold text-[#08c2cd]' : 'text-slate-300'}`}>Pruebas</a>}
                         {(role === 'administrador' || role === 'almacenista') && <a href="/almacen" className={`hover:text-[#08c2cd] ${title.includes('Inventario') ? 'font-bold text-[#08c2cd]' : 'text-slate-300'}`}>Inventario</a>}
                         {(role === 'administrador' || role === 'almacenista') && <a href="/almacen/picking" className={`hover:text-[#08c2cd] ${title.includes('Preparación') ? 'font-bold text-[#08c2cd]' : 'text-slate-300'}`}>Picking</a>}
                         {role === 'veterinario' && <a href="/veterinaria/citas" className={`hover:text-[#08c2cd] ${title.includes('Veterinaria') ? 'font-bold text-[#08c2cd]' : 'text-slate-300'}`}>Agenda clínica</a>}

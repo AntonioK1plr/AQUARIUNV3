@@ -58,7 +58,7 @@ export default function FishGuide({ species = [], volumes = {} }) {
                         <li><b>Filtro biológico</b> dimensionado al volumen y a la población, con circulación adecuada.</li>
                         <li><b>Termómetro</b> y, para especies tropicales que lo requieran, calentador regulable.</li>
                         <li><b>Acondicionador de agua</b> para neutralizar cloro y cloraminas del agua de red.</li>
-                        <li><b>Pruebas de agua</b> para temperatura, pH, amoniaco, nitrito y nitrato; en marinos también salinidad.</li>
+                        <li><b>Kit para medir la calidad del agua</b>: temperatura, pH, amoniaco, nitrito y nitrato; en marinos también salinidad.</li>
                         <li><b>Tapa e iluminación</b> según el tipo de montaje y las especies.</li>
                     </ul>
                 </article>

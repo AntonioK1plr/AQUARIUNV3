@@ -11,6 +11,10 @@ class User extends Authenticatable
 {
     use HasFactory, Notifiable;
 
+    protected $attributes = [
+        'is_active' => true,
+    ];
+
     public const ROLE_CLIENTE = 'cliente';
     public const ROLE_ADMINISTRADOR = 'administrador';
     public const ROLE_ALMACENISTA = 'almacenista';

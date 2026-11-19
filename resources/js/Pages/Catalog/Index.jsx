@@ -129,7 +129,7 @@ export default function CatalogIndex({ products, filters, brands }) {
                         <p className="text-xs font-bold uppercase tracking-[0.14em] text-teal-700">AQUARIUM · Catálogo público</p>
                         <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">Peces e insumos</h1>
                         <p className="mt-2 text-sm text-slate-600">Explora el catálogo sin necesidad de iniciar sesión.</p>
-                        <p className="mt-2 max-w-3xl text-xs leading-5 text-slate-500">Los parámetros y volúmenes son orientativos; confirma compatibilidad y condiciones del acuario antes de elegir. Precios y existencias de esta versión local son datos de demostración.</p>
+                        <p className="mt-2 max-w-3xl text-xs leading-5 text-slate-500">Los parámetros y volúmenes son orientativos; confirma compatibilidad y condiciones del acuario antes de elegir.</p>
                         {props.errors?.care && <div role="alert" className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-800">{props.errors.care}</div>}
                     </div>
                     <a href="/" className="text-sm font-semibold text-teal-800 hover:underline">Volver al inicio</a>
