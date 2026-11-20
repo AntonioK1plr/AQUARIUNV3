@@ -24,5 +24,7 @@ COPY docker/php/www.conf /usr/local/etc/php-fpm.d/zz-aquarium.conf
 
 WORKDIR /var/www/html
 COPY . /var/www/html
+# Keep Laravel's CLI entry point explicit for the isolated load-test build context.
+COPY artisan /var/www/html/artisan
 RUN mkdir -p storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs bootstrap/cache \
     && chown -R www-data:www-data storage bootstrap/cache
