@@ -3,44 +3,55 @@
 namespace Tests\Feature;
 
 use App\Models\Appointment;
-use App\Models\SimulatedPayment;
+use App\Models\StripePaymentAttempt;
 use App\Models\User;
+use App\Services\StripePaymentService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
+use Mockery;
 use Tests\TestCase;
 
 class ClinicAppointmentsTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_client_can_book_a_consultation_with_local_simulation_and_view_it(): void
+    public function test_client_pays_for_consultation_before_it_is_confirmed(): void
     {
         $client = $this->makeUser(User::ROLE_CLIENTE, 'client@example.test');
         $veterinarian = $this->makeUser(User::ROLE_VETERINARIO, 'vet@example.test');
+        $event = $this->paymentSucceededEvent('pi_appointment_1', (int) config('aquarium.consultation_fee') * 100);
+        $this->mockStripe($event, intentCount: 1);
 
-        $this->actingAs($client)->post('/citas', $this->booking($veterinarian))
-            ->assertRedirect('/citas');
+        $this->actingAs($client)->postJson('/citas/pago/stripe/intento', $this->booking($veterinarian, 'a2a755ab-436c-44e7-8a23-c8f28553c0e9'))
+            ->assertOk()->assertJsonPath('appointment_id', 1)->assertJsonPath('mode', 'test');
 
         $appointment = Appointment::firstOrFail();
-        $payment = SimulatedPayment::firstOrFail();
-        $this->assertSame(Appointment::STATUS_SCHEDULED, $appointment->status);
-        $this->assertSame('simulado_local', $payment->method);
-        $this->assertSame('cargo_simulado', $payment->status);
-        $this->assertSame((float) config('aquarium.simulated_consultation_fee'), (float) $payment->amount);
+        $attempt = StripePaymentAttempt::firstOrFail();
+        $this->assertSame(Appointment::STATUS_PAYMENT_PENDING, $appointment->status);
+        $this->assertSame('requires_payment_method', $attempt->status);
+        $this->assertSame('pi_appointment_1', $attempt->payment_intent_id);
 
-        $this->get('/citas')->assertOk()->assertInertia(fn (Assert $page) => $page
+        $this->postJson('/webhooks/stripe', [], ['Stripe-Signature' => 'test-signature'])->assertOk();
+        $this->assertDatabaseHas('appointments', ['id' => $appointment->id, 'status' => Appointment::STATUS_SCHEDULED]);
+        $this->assertDatabaseHas('stripe_payment_attempts', ['id' => $attempt->id, 'status' => 'succeeded']);
+
+        $this->actingAs($client)->get('/citas')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->component('Appointments/ClientIndex')
             ->has('appointments.data', 1)
             ->where('appointments.data.0.patient_name', 'Nemo'));
     }
 
-    public function test_a_veterinarian_cannot_be_booked_twice_for_the_same_time(): void
+    public function test_veterinarian_cannot_be_reserved_twice_for_the_same_time(): void
     {
         $client = $this->makeUser(User::ROLE_CLIENTE, 'client@example.test');
         $veterinarian = $this->makeUser(User::ROLE_VETERINARIO, 'vet@example.test');
-        $this->actingAs($client)->post('/citas', $this->booking($veterinarian))->assertRedirect('/citas');
-        $this->from('/citas')->post('/citas', $this->booking($veterinarian))
-            ->assertRedirect('/citas')->assertSessionHasErrors('scheduled_at');
+        $this->mockStripe(intentCount: 1);
+        $payload = $this->booking($veterinarian, 'a2a755ab-436c-44e7-8a23-c8f28553c0e9');
+
+        $this->actingAs($client)->postJson('/citas/pago/stripe/intento', $payload)->assertOk();
+        $payload['request_key'] = '78a20125-328c-4ae0-829f-3d4fa068410d';
+        $this->actingAs($client)->postJson('/citas/pago/stripe/intento', $payload)
+            ->assertUnprocessable()->assertJsonValidationErrors('scheduled_at');
 
         $this->assertDatabaseCount('appointments', 1);
     }
@@ -49,13 +60,13 @@ class ClinicAppointmentsTest extends TestCase
     {
         $client = $this->makeUser(User::ROLE_CLIENTE, 'client@example.test');
         $veterinarian = $this->makeUser(User::ROLE_VETERINARIO, 'vet@example.test');
+        $this->mockStripe();
 
-        foreach (['08:30', '19:01', '21:00'] as $time) {
-            $payload = $this->booking($veterinarian);
+        foreach (['08:30', '19:01', '21:00'] as $index => $time) {
+            $payload = $this->booking($veterinarian, sprintf('a2a755ab-436c-44e7-8a23-c8f28553c0%02d', $index + 10));
             $payload['scheduled_at'] = now()->addDays(3)->setTimeFromTimeString($time)->toDateTimeString();
-
-            $this->actingAs($client)->from('/citas')->post('/citas', $payload)
-                ->assertRedirect('/citas')->assertSessionHasErrors('scheduled_at');
+            $this->actingAs($client)->postJson('/citas/pago/stripe/intento', $payload)
+                ->assertUnprocessable()->assertJsonValidationErrors('scheduled_at');
         }
 
         $this->assertDatabaseCount('appointments', 0);
@@ -65,29 +76,30 @@ class ClinicAppointmentsTest extends TestCase
     {
         $client = $this->makeUser(User::ROLE_CLIENTE, 'client@example.test');
         $veterinarian = $this->makeUser(User::ROLE_VETERINARIO, 'vet@example.test');
+        $this->mockStripe(intentCount: 2);
 
         foreach (['09:00', '19:00'] as $index => $time) {
-            $payload = $this->booking($veterinarian);
+            $payload = $this->booking($veterinarian, sprintf('a2a755ab-436c-44e7-8a23-c8f28553c1%02d', $index + 10));
             $payload['scheduled_at'] = now()->addDays(3 + $index)->setTimeFromTimeString($time)->toDateTimeString();
-
-            $this->actingAs($client)->post('/citas', $payload)->assertRedirect('/citas');
+            $this->actingAs($client)->postJson('/citas/pago/stripe/intento', $payload)->assertOk();
         }
 
         $this->assertDatabaseCount('appointments', 2);
     }
 
-    public function test_client_cancellation_registers_a_simulated_refund(): void
+    public function test_client_cancellation_requests_a_stripe_refund(): void
     {
-        [$client, $veterinarian, $appointment] = $this->makeAppointment();
+        [$client, , $appointment] = $this->makeAppointment();
+        $this->mockStripe(refundStatus: 'succeeded');
 
         $this->actingAs($client)->patch("/citas/{$appointment->id}/cancelar", [
             'cancellation_reason' => 'Cambio de horario',
-        ])->assertRedirect();
+        ])->assertRedirect()->assertSessionHas('success');
 
         $this->assertDatabaseHas('appointments', ['id' => $appointment->id, 'status' => Appointment::STATUS_CANCELLED_CLIENT]);
-        $this->assertDatabaseHas('simulated_payments', [
+        $this->assertDatabaseHas('stripe_payment_attempts', [
             'appointment_id' => $appointment->id,
-            'status' => 'reembolsado_simulado',
+            'status' => 'refunded',
             'refund_reason' => 'Cancelación solicitada por cliente: Cambio de horario',
         ]);
     }
@@ -99,40 +111,34 @@ class ClinicAppointmentsTest extends TestCase
         $this->actingAs($veterinarian)->get('/veterinaria/citas')->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Appointments/VeterinaryIndex')
-                ->where('appointments.data.0.client.email', 'client@example.test')
+                ->where('appointments.data.0.client.email', $client->email)
                 ->where('appointments.data.0.patient_name', 'Nemo'));
 
-        $this->patch("/veterinaria/citas/{$appointment->id}/consulta", [
+        $this->actingAs($veterinarian)->patch("/veterinaria/citas/{$appointment->id}/consulta", [
             'diagnosis' => 'Infección leve; requiere vigilancia.',
-            'prescription' => 'Tratamiento de prueba durante cinco días.',
+            'prescription' => 'Tratamiento durante cinco días.',
             'veterinarian_notes' => 'Revisar calidad del agua en seguimiento.',
             'clinical_data' => [
                 'temperature_c' => '25.5', 'ph' => '8.1', 'ammonia_mg_l' => '0.1',
-                'medication' => 'Medicamento de prueba', 'dose' => '1 ml', 'route' => 'oral',
+                'medication' => 'Medicamento indicado', 'dose' => '1 ml', 'route' => 'oral',
                 'frequency' => 'cada 24 horas', 'duration_days' => '5',
             ],
         ])->assertRedirect();
 
-        $this->assertDatabaseHas('appointments', [
-            'id' => $appointment->id,
-            'status' => Appointment::STATUS_COMPLETED,
-            'diagnosis' => 'Infección leve; requiere vigilancia.',
-            'prescription' => 'Tratamiento de prueba durante cinco días.',
-        ]);
-
         $appointment->refresh();
+        $this->assertSame(Appointment::STATUS_COMPLETED, $appointment->status);
         $this->assertSame('25.5', $appointment->clinical_data['temperature_c']);
         $this->assertSame('1 ml', $appointment->clinical_data['dose']);
         $this->assertMatchesRegularExpression('/^[a-f0-9]{64}$/', $appointment->clinical_record_hash);
         $this->assertNotNull($appointment->clinical_recorded_at);
     }
 
-    public function test_completed_clinical_record_pdf_is_available_to_the_client_and_assigned_veterinarian(): void
+    public function test_completed_clinical_record_pdf_is_available_to_client_and_assigned_veterinarian(): void
     {
         [$client, $veterinarian, $appointment] = $this->makeAppointment();
         $appointment->update([
             'status' => Appointment::STATUS_COMPLETED,
-            'diagnosis' => 'Prueba clínica del expediente.',
+            'diagnosis' => 'Revisión clínica del expediente.',
             'prescription' => 'Observar durante siete días.',
             'clinical_record_hash' => str_repeat('a', 64),
             'clinical_recorded_at' => now(),
@@ -147,7 +153,7 @@ class ClinicAppointmentsTest extends TestCase
 
     public function test_clinical_record_pdf_is_private_and_only_available_after_completion(): void
     {
-        [$client, $veterinarian, $appointment] = $this->makeAppointment();
+        [$client, , $appointment] = $this->makeAppointment();
         $otherClient = $this->makeUser(User::ROLE_CLIENTE, 'other@example.test');
         $admin = $this->makeUser(User::ROLE_ADMINISTRADOR, 'admin@example.test');
 
@@ -156,27 +162,29 @@ class ClinicAppointmentsTest extends TestCase
         $this->actingAs($client)->get("/expedientes/clinicos/{$appointment->id}.pdf")->assertNotFound();
     }
 
-    public function test_no_show_keeps_the_simulated_charge_and_creates_no_refund(): void
+    public function test_no_show_keeps_the_confirmed_stripe_payment_without_refund(): void
     {
-        [$client, $veterinarian, $appointment] = $this->makeAppointment(now()->subHour());
+        [, $veterinarian, $appointment] = $this->makeAppointment(now()->subHour());
+        $this->mockStripe();
 
         $this->actingAs($veterinarian)->patch("/veterinaria/citas/{$appointment->id}/inasistencia")
             ->assertRedirect();
 
         $this->assertDatabaseHas('appointments', ['id' => $appointment->id, 'status' => Appointment::STATUS_NO_SHOW]);
-        $this->assertDatabaseHas('simulated_payments', ['appointment_id' => $appointment->id, 'status' => 'cargo_simulado', 'refunded_at' => null]);
+        $this->assertDatabaseHas('stripe_payment_attempts', ['appointment_id' => $appointment->id, 'status' => 'succeeded', 'refunded_at' => null]);
     }
 
-    public function test_veterinarian_cancellation_registers_a_simulated_refund(): void
+    public function test_veterinarian_cancellation_requests_a_stripe_refund(): void
     {
-        [$client, $veterinarian, $appointment] = $this->makeAppointment();
+        [, $veterinarian, $appointment] = $this->makeAppointment();
+        $this->mockStripe(refundStatus: 'succeeded');
 
         $this->actingAs($veterinarian)->patch("/veterinaria/citas/{$appointment->id}/cancelar", [
             'cancellation_reason' => 'Emergencia clínica',
-        ])->assertRedirect();
+        ])->assertRedirect()->assertSessionHas('success');
 
         $this->assertDatabaseHas('appointments', ['id' => $appointment->id, 'status' => Appointment::STATUS_CANCELLED_VET]);
-        $this->assertDatabaseHas('simulated_payments', ['appointment_id' => $appointment->id, 'status' => 'reembolsado_simulado']);
+        $this->assertDatabaseHas('stripe_payment_attempts', ['appointment_id' => $appointment->id, 'status' => 'refunded']);
     }
 
     private function makeAppointment(?\Illuminate\Support\Carbon $scheduledAt = null): array
@@ -191,27 +199,66 @@ class ClinicAppointmentsTest extends TestCase
             'symptoms' => 'Presenta menor actividad.',
             'scheduled_at' => $scheduledAt ?? now()->addDays(2),
             'status' => Appointment::STATUS_SCHEDULED,
-            'consultation_fee' => config('aquarium.simulated_consultation_fee'),
+            'consultation_fee' => config('aquarium.consultation_fee'),
         ]);
-        SimulatedPayment::create([
+        StripePaymentAttempt::create([
             'appointment_id' => $appointment->id,
-            'reference' => 'SIM-TEST-'.$appointment->id,
+            'client_request_key' => (string) \Illuminate\Support\Str::uuid(),
+            'payment_intent_id' => 'pi_paid_appointment_'.$appointment->id,
             'amount' => $appointment->consultation_fee,
-            'method' => 'simulado_local',
-            'status' => 'cargo_simulado',
+            'currency' => 'mxn',
+            'status' => 'succeeded',
+            'session_hash' => hash('sha256', 'appointment-client-'.$client->id),
+            'stripe_mode' => 'test',
+            'paid_at' => now(),
+            'expires_at' => now()->addMinutes(30),
         ]);
 
         return [$client, $veterinarian, $appointment];
     }
 
-    private function booking(User $veterinarian): array
+    private function booking(User $veterinarian, string $requestKey): array
     {
         return [
+            'request_key' => $requestKey,
             'veterinarian_id' => $veterinarian->id,
             'patient_name' => 'Nemo',
             'species' => 'Pez payaso Ocellaris',
             'symptoms' => 'Menor actividad y apetito desde ayer.',
             'scheduled_at' => now()->addDays(3)->setTime(12, 0)->toDateTimeString(),
+        ];
+    }
+
+    private function mockStripe(?array $event = null, int $intentCount = 0, string $refundStatus = 'succeeded'): void
+    {
+        $stripe = Mockery::mock(StripePaymentService::class);
+        $stripe->shouldReceive('isConfigured')->andReturn(true);
+        $stripe->shouldReceive('mode')->andReturn('test');
+        $stripe->shouldReceive('isLiveMode')->andReturn(false);
+        if ($intentCount > 0) {
+            $stripe->shouldReceive('createPaymentIntent')->times($intentCount)->andReturn(
+                ['id' => 'pi_appointment_1', 'status' => 'requires_payment_method', 'client_secret' => 'pi_appointment_1_secret_test'],
+                ...array_fill(0, max(0, $intentCount - 1), ['id' => 'pi_appointment_next', 'status' => 'requires_payment_method', 'client_secret' => 'pi_appointment_next_secret_test']),
+            );
+        }
+        if ($event !== null) {
+            $stripe->shouldReceive('verifyWebhook')->once()->andReturn($event);
+        }
+        $stripe->shouldReceive('refundPaymentIntent')->andReturn($refundStatus);
+        $this->app->instance(StripePaymentService::class, $stripe);
+    }
+
+    private function paymentSucceededEvent(string $intentId, int $amountCents): array
+    {
+        return [
+            'id' => 'evt_appointment_succeeded',
+            'type' => 'payment_intent.succeeded',
+            'data' => ['object' => [
+                'id' => $intentId,
+                'amount_received' => $amountCents,
+                'currency' => 'mxn',
+                'livemode' => false,
+            ]],
         ];
     }
 

@@ -19,17 +19,17 @@ Límites importantes del plan gratuito:
 - El sistema de archivos del Web Service es temporal; los archivos subidos ahí no sirven como almacenamiento permanente. Las imágenes incluidas en `public/` sí se compilan en la imagen de la aplicación.
 - El plan Free no ofrece shell ni Pre-Deploy; tampoco se creará un Cron Job, que tiene costo mínimo mensual. Por ello las tareas programadas no correrán automáticamente.
 
-Render documenta estos límites en [Deploy for Free](https://render.com/docs/free). Revisa el contador de caducidad de la base en el Dashboard y descarga un `pg_dump` antes de que venza. Si la base se crea el 19 de noviembre, el límite de 30 días queda aproximadamente el 19 de diciembre: alcanza el plazo máximo del 18 de diciembre con un margen de un día. No prolongues el uso con datos importantes sin exportar o actualizar el plan.
+Render documenta estos límites en [Deploy for Free](https://render.com/docs/free). La base Render ya está provisionada; consulta su fecha de expiración exacta en el Dashboard y descarga un `pg_dump` comprobable antes de que venza. No prolongues el uso con datos importantes sin exportar o actualizar el plan.
 
 Las migraciones y restauraciones se ejecutan desde el entorno local contra la **External Database URL** protegida con `sslmode=require`. La aplicación en Render se conectará a la **Internal Database URL** porque web y base compartirán región. Render documenta el uso de la URL externa desde equipos locales y de la interna entre servicios en la misma región ([conexiones a Postgres](https://render.com/docs/postgresql-creating-connecting)). No actives `Pre-Deploy` ni un plan pagado.
 
 ## Antes de migrar datos
 
-1. En Render Dashboard crea PostgreSQL **Free**, versión PostgreSQL compatible con el servidor actual y región cercana al Web Service. Copia la **Internal Database URL** como secreto; no la pongas en Git ni en capturas.
+1. La base Render PostgreSQL **18 Free** ya está creada en Virginia, con capacidad de 1 GB. El origen local usa PostgreSQL 16.15; valida una restauración de respaldo de 16 a 18 en la base destino antes de cambiar el servicio. No guardes credenciales en Git ni en capturas.
 2. Anota tamaño y versión de la base actual, y genera una copia de seguridad comprobable. Si la base actual es Supabase, la copia lógica se hace con `pg_dump`; Supabase documenta la exportación de su base remota con `supabase db dump` y sus opciones de migración. [Migración y copias de Supabase](https://supabase.com/docs/guides/platform/migrating-within-supabase).
 3. Programa una ventana sin escrituras (detén ventas, inventario, citas y usuarios) para la copia final. No cambies `DB_URL` hasta restaurar y verificar el destino. Conserva intacta la base anterior hasta que la nueva pase la revisión.
 4. Exporta el esquema `public` de PostgreSQL sin propietarios ni ACL ligados al proyecto de origen. Restaura en la base Render vacía y verifica tablas, índices, secuencias, conteos de filas, stock agregado y movimientos históricos. No migres esquemas internos administrados de Supabase a Render.
-5. Cambia `DB_URL` al Internal Database URL de Render en el Web Service; define `DB_CONNECTION=pgsql` y `DB_SSLMODE=require`. Mantén fuera del repositorio cualquier URI con usuario o contraseña.
+5. Cambia `DB_URL` al Internal Database URL de Render en el Web Service; define `DB_CONNECTION=pgsql` y `DB_SSLMODE=require`. Rota las credenciales que se hayan compartido fuera del almacén de secretos y restringe el acceso externo de PostgreSQL a las IP necesarias para la migración.
 
 La copia y restauración final requieren acceso autenticado a ambas bases. Este cambio no se ejecuta desde el repositorio y aún no se ha hecho.
 
@@ -92,9 +92,9 @@ Al migrar a Render, exporta/restaura tanto `products` como `inventory_movements`
 
 ## Lo que hace falta para ejecutar la migración gratuita
 
-- Acceso a Render Dashboard para crear la base Free y el Web Service Free.
+- Crear el Web Service Docker Free en Render y configurar `/up` como health check. La base Free ya está provisionada.
 - URL de conexión de origen accesible para exportar, y la URL interna de destino que Render genera.
-- Claves Stripe de prueba recién rotadas.
+- Credenciales de base de datos rotadas y guardadas solo en los secretos de Render; claves Stripe test recién rotadas y webhook de Render configurado.
 - Programar la ventana de solo lectura para el corte de datos y conservar el respaldo local durante toda la revisión.
 
-No se han cargado secretos ni se ha creado servicio remoto desde este cambio local.
+No se han cargado secretos en Git. Render PostgreSQL está provisionado; el Web Service, la rotación de credenciales y la migración siguen pendientes.

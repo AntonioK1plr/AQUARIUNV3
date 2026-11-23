@@ -204,7 +204,7 @@ class OrderFulfillmentTest extends TestCase
             'quantity_before' => 0,
             'quantity_after' => 2,
         ]);
-        $this->assertDatabaseHas('simulated_order_payments', ['order_id' => $order->id, 'status' => 'reembolso_simulado']);
+        $this->assertDatabaseHas('simulated_order_payments', ['order_id' => $order->id, 'status' => 'legacy_cancelled_no_charge']);
         $this->assertDatabaseHas('order_fulfillment_events', [
             'order_id' => $order->id,
             'event_type' => 'recoleccion_vencida',

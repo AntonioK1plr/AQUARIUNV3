@@ -66,7 +66,7 @@ class OperationsModulesTest extends TestCase
 
         $product = Product::where('sku', 'AQ-TEST-001')->firstOrFail();
         $this->assertSame(0, $product->stock);
-        $this->assertSame('A-01-02', $product->warehouse_location);
+        $this->assertSame('Pasillo A-01-02', $product->warehouse_location);
 
         $this->actingAs($warehouse)->post('/almacen/productos', [
             'sku' => 'AQ-HEALTH-TEST-001',
@@ -80,7 +80,7 @@ class OperationsModulesTest extends TestCase
         $this->actingAs($warehouse)->patch("/almacen/productos/{$product->id}/ubicacion", [
             'warehouse_location' => 'B-03-01',
         ])->assertRedirect();
-        $this->assertDatabaseHas('products', ['id' => $product->id, 'warehouse_location' => 'B-03-01']);
+        $this->assertDatabaseHas('products', ['id' => $product->id, 'warehouse_location' => 'Pasillo B-03-01']);
 
         $this->from('/almacen')->patch("/almacen/productos/{$product->id}/ubicacion", [
             'warehouse_location' => 'Ubicación no válida!',

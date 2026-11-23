@@ -13,7 +13,7 @@ Establecer la línea base técnica, preparar un entorno local repetible y regist
 | CSS | Tailwind CSS 3 |
 | Datos locales | PostgreSQL 16 y Redis 7 mediante Docker Compose |
 | Pruebas | PHPUnit; Selenium WebDriver y Apache JMeter según QU4 y el Plan de Pruebas Local |
-| Despliegue definido | Render Web Service Docker y Render PostgreSQL; almacenamiento persistente de archivos se definirá por separado. |
+| Despliegue definido | Render Web Service Docker pendiente; Render PostgreSQL 18 ya provisionado como destino. La base local de trabajo sigue en PostgreSQL 16.15; falta migrar y verificar la compatibilidad entre versiones. |
 | Pagos | Stripe Payment Element + PaymentIntents y webhook firmado, exclusivamente en modo test durante desarrollo y revisión. |
 
 ### Cambios de compatibilidad aprobados
@@ -24,6 +24,13 @@ Establecer la línea base técnica, preparar un entorno local repetible y regist
 - Main Work contiene dos incompatibilidades internas de línea base: OE-03 indica Python 3.12 y SQLite/PostgreSQL, mientras la pila de 5.4 detalla Laravel/PHP, React/Inertia y PostgreSQL; OE-08 menciona AWS, mientras las secciones 5.4-5.5 y el diagrama definen plataformas cloud distintas. Se sigue la decisión posterior del usuario: Laravel/React/Inertia, PostgreSQL local en Docker y Render PostgreSQL como destino; AWS/Python/Supabase quedan registrados como antecedentes o contradicciones, no como la arquitectura vigente.
 
 ## Estado del entorno y trabajo
+
+### Actualización del 23/11/2026
+
+- Render PostgreSQL 18 está disponible en Virginia con 1 GB; el Web Service y la migración todavía no están hechos. La credencial compartida fuera de un gestor seguro debe rotarse antes de conectar la aplicación. Restringe las conexiones externas a las IP necesarias y usa la URL interna en Render.
+- La versión local usa Docker Compose con PostgreSQL 16.15 y Redis 7. El perfil de la aplicación está activo en `http://127.0.0.1:8001`.
+- La compilación de producción Vite pasó y la suite PHPUnit pasó con 52 pruebas y 595 aserciones. Los flujos de checkout y citas se verificaron con el servicio Stripe simulado mediante mocks; no se hicieron cargos reales ni conexión a Stripe durante la suite.
+- El ajuste único de +25 por producto permanece aplicado en PostgreSQL local: 135 movimientos, 3,375 unidades añadidas; al corte de verificación, 4,276 unidades de stock total. No volver a aplicar el ajuste al migrar.
 
 - Esqueleto Laravel creado en `aquarium/`; dependencias instaladas: Laravel 12.69.3, Inertia Laravel 1.3.4, PHPUnit 11.5.57, Collision 8.9.5 y Predis 2.4.1.
 - Configurados React 18, Inertia React 1.3.0, Vite 8.3.4 y Tailwind 3.4.19. La portada pública responsive sigue la referencia visual AQUARIUM.png: navegación, hero de búsqueda, categorías, especies recomendadas, clínica veterinaria y pie de página. Las fotos se guardan localmente dentro del proyecto.
