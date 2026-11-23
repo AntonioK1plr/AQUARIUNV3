@@ -77,18 +77,14 @@ Cuando negocio y Stripe estén listos para cobrar dinero real, cambia de manera 
 
 ## Aumento solicitado de inventario
 
-Después de restaurar los datos finales de la base de origen y antes de abrir el sistema al público, ejecuta una sola vez:
+El aumento único de **+25 unidades por producto ya se aplicó en el PostgreSQL local** y quedó asentado como un movimiento `ajuste` por producto. En la verificación del 23/11/2026 había 135 productos ajustados, 3,375 unidades agregadas en total y 4,276 unidades en stock agregado. Esto es un stock inicial de demostración para probar compras e inventario; no es periódico.
 
-```sh
-php artisan aquarium:increase-stock 25
-```
-
-El comando suma 25 al stock actual de cada fila de `products`, no sustituye el stock. Crea un movimiento `ajuste` por producto con cantidades antes/después y motivo. Si detecta el mismo motivo de ajuste, aborta para no volver a sumar. La ejecución debe ser en la base de Render ya restaurada; no la ejecutes antes de importar el stock histórico.
+Al migrar a Render, exporta/restaura tanto `products` como `inventory_movements` y conserva ese snapshot. **No ejecutes `aquarium:increase-stock 25` en Render**: el incremento ya está incluido en la base local y volverlo a sumar duplicaría el ajuste. El comando sigue teniendo protección de idempotencia por motivo como salvaguarda.
 
 ## Verificación posterior
 
 - Comparar conteos de filas por tabla y claves/relaciones críticas con el origen.
-- Validar conteo de productos y `stock` con reporte antes/después: diferencia de +25 por producto.
+- Comparar el conteo y stock de productos con el snapshot migrado, y confirmar que los 135 movimientos del ajuste único (+25 cada uno) se conservaron; no volver a aplicar el aumento.
 - Iniciar sesión con cuentas existentes y comprobar que sus contraseñas siguen funcionando.
 - Completar flujo test de compra y cita; comprobar webhook, inventario, cancelación y reembolso.
 - Reiniciar servicio y repetir lectura de catálogo, cuenta, pedidos y citas para confirmar persistencia.

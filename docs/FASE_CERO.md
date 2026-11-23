@@ -13,15 +13,15 @@ Establecer la línea base técnica, preparar un entorno local repetible y regist
 | CSS | Tailwind CSS 3 |
 | Datos locales | PostgreSQL 16 y Redis 7 mediante Docker Compose |
 | Pruebas | PHPUnit; Selenium WebDriver y Apache JMeter según QU4 y el Plan de Pruebas Local |
-| Futuro despliegue | Render para la aplicación; Supabase PostgreSQL y Storage. No se usa durante esta etapa local. |
-| Pagos | Adaptador simulado; no se usan efectivo real, dinero, terminales ni APIs de pasarela. |
+| Despliegue definido | Render Web Service Docker y Render PostgreSQL; almacenamiento persistente de archivos se definirá por separado. |
+| Pagos | Stripe Payment Element + PaymentIntents y webhook firmado, exclusivamente en modo test durante desarrollo y revisión. |
 
 ### Cambios de compatibilidad aprobados
 
 - El 13 de octubre de 2026 se aprobó actualizar Laravel 11 a Laravel 12 con PHP 8.2, y registrar el cambio en la línea base. Laravel 11 terminó su periodo de correcciones de seguridad el 12 de marzo de 2026. La versión 12 mantiene soporte de seguridad previsto hasta el 24 de febrero de 2027 ([ciclo oficial de versiones](https://laravel.com/framework/docs/11.x/releases)).
 - PHPUnit 11.5 y Collision 8.6 reemplazan PHPUnit 10.x de Main Work por compatibilidad con Laravel 12/PHP 8.2; se conserva el propósito de las pruebas, no se cambia su cobertura definida.
 - El adaptador Laravel 1.3.3 incluye soporte de Laravel 12; se conserva Inertia 1.x como especifica Main Work. Se mantiene React 18.
-- Main Work contiene dos incompatibilidades internas de línea base: OE-03 indica Python 3.12 y SQLite/PostgreSQL, mientras la pila de 5.4 detalla Laravel/PHP, React/Inertia y PostgreSQL; OE-08 menciona AWS, mientras las secciones 5.4-5.5 y el diagrama definen Render + Supabase. Se sigue la selección explícita del usuario: Laravel/React/Inertia, PostgreSQL, Render y Supabase; AWS/Python quedan registrados como contradicciones del documento, no como trabajo adicional aprobado.
+- Main Work contiene dos incompatibilidades internas de línea base: OE-03 indica Python 3.12 y SQLite/PostgreSQL, mientras la pila de 5.4 detalla Laravel/PHP, React/Inertia y PostgreSQL; OE-08 menciona AWS, mientras las secciones 5.4-5.5 y el diagrama definen plataformas cloud distintas. Se sigue la decisión posterior del usuario: Laravel/React/Inertia, PostgreSQL local en Docker y Render PostgreSQL como destino; AWS/Python/Supabase quedan registrados como antecedentes o contradicciones, no como la arquitectura vigente.
 
 ## Estado del entorno y trabajo
 
